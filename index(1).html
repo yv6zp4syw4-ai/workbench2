@@ -1,0 +1,2640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工作台</title>
+<style>
+  :root{
+    --paper: #F3ECDD;
+    --card: #FFFDF7;
+    --card-line: #E4D8B8;
+    --ink: #26314A;
+    --ink-soft: #5B6478;
+    --stamp: #B23A2E;
+    --stamp-soft: #E7C9C2;
+    --sage: #4C7A5E;
+    --sage-soft: #D9E6DC;
+    --gold: #B9902E;
+    --gold-soft: #F3E4C4;
+    --font-display: "Songti SC", "STSong", "SimSun", serif;
+    --font-body: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(185,144,46,0.06), transparent 40%),
+      var(--paper);
+    color:var(--ink);
+    font-family:var(--font-body);
+    min-height:100vh;
+  }
+  /* ===== 顶部页头 ===== */
+  .app-head{
+    display:flex; align-items:baseline; gap:12px;
+    margin-bottom:14px; flex-wrap:wrap;
+  }
+  .app-head .app-title{
+    font-family:var(--font-display);
+    font-size:21px; font-weight:600; letter-spacing:2px;
+    margin:0;
+  }
+  /* ===== 底部导航栏（App 风格） ===== */
+  .tabbar{
+    position:fixed; bottom:0; left:0; right:0; z-index:40;
+    background:var(--ink);
+    display:flex; gap:2px;
+    padding:6px 6px calc(7px + env(safe-area-inset-bottom, 0px));
+    box-shadow:0 -3px 14px rgba(38,49,74,.18);
+  }
+  .tab{
+    flex:1;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    padding:7px 2px 5px;
+    font-size:10.5px;
+    color:#B9C0D2;
+    cursor:pointer;
+    border-radius:8px;
+    user-select:none;
+    transition:background .15s;
+  }
+  .tab:hover{ background:rgba(255,255,255,0.07); }
+  .tab .tico{ font-size:19px; line-height:1; }
+  .tab.active{
+    background:var(--paper);
+    color:var(--ink);
+    font-weight:600;
+  }
+  /* ===== 主区域（自适应铺满，宽屏多列） ===== */
+  .desk{
+    flex:1;
+    padding:26px 34px 108px; /* 底部给导航栏留出空间 */
+    min-width:0;
+  }
+  .desk h2{
+    font-family:var(--font-display);
+    font-size:26px;
+    margin:0 0 4px 0;
+  }
+  .desk .desc{
+    color:var(--ink-soft);
+    font-size:13px;
+    margin:0 0 20px 0;
+  }
+  /* 多列网格：卡片自动并排铺满可用宽度 */
+  .panel-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(330px, 1fr));
+    gap:16px;
+    align-items:start;
+  }
+  .panel-grid .card{ margin-bottom:0; }
+  .wide{ grid-column:1 / -1; }
+  .card{
+    background:var(--card);
+    border:1px solid var(--card-line);
+    border-radius:4px;
+    padding:20px 22px;
+    margin-bottom:18px;
+    box-shadow: 0 1px 0 rgba(38,49,74,0.03);
+  }
+  .card h3{
+    font-family:var(--font-display);
+    font-size:16px;
+    margin:0 0 14px 0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  input, select, textarea{
+    font-family:var(--font-body);
+    font-size:13.5px;
+    padding:8px 10px;
+    border:1px solid var(--card-line);
+    border-radius:3px;
+    background:#FFFFFF;
+    color:var(--ink);
+    min-width:0;
+  }
+  input:focus, select:focus, textarea:focus{ outline:1px solid var(--gold); }
+  button{
+    font-family:var(--font-body);
+    font-size:13.5px;
+    padding:8px 16px;
+    border-radius:3px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--paper);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  button:hover{ opacity:.88; }
+  button.ghost{
+    background:transparent;
+    color:var(--ink);
+    border:1px solid var(--card-line);
+  }
+  button.ghost:hover{ border-color:var(--ink); opacity:1; }
+  button.danger{
+    background:transparent;
+    border:1px solid var(--stamp-soft);
+    color:var(--stamp);
+    padding:5px 10px;
+    font-size:12px;
+  }
+  button.danger:hover{ background:var(--stamp-soft); opacity:1; }
+  button.small{ padding:5px 10px; font-size:12px; }
+  .list-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 0;
+    border-bottom:1px dashed var(--card-line);
+    font-size:13.5px;
+    flex-wrap:wrap;
+  }
+  .list-item:last-child{ border-bottom:none; }
+  .list-item .flex1{ flex:1; min-width:120px; }
+  .tag{
+    font-size:11px;
+    padding:2px 8px;
+    border-radius:10px;
+    background:var(--sage-soft);
+    color:var(--sage);
+    white-space:nowrap;
+  }
+  .tag.urgent{ background:var(--stamp-soft); color:var(--stamp); }
+  .tag.warn{ background:var(--gold-soft); color:var(--gold); }
+  .tag.gold{ background:var(--gold-soft); color:var(--gold); }
+  .tag.plain{ background:#EDE9E0; color:var(--ink-soft); }
+  .muted{ color:var(--ink-soft); font-size:12px; }
+  .done{ text-decoration:line-through; color:var(--ink-soft); }
+  .stat-row{ display:flex; gap:12px; flex-wrap:wrap; }
+  .stat{
+    flex:1;
+    min-width:105px;
+    background:#FBF6EA;
+    border:1px solid var(--card-line);
+    border-radius:4px;
+    padding:12px 14px;
+  }
+  .stat .num{ font-family:var(--font-display); font-size:21px; white-space:nowrap; }
+  .stat .label{ font-size:11.5px; color:var(--ink-soft); }
+  .stat.due .num{ color:var(--stamp); }
+  .stat.ok .num{ color:var(--sage); }
+  .gtag{
+    font-family:var(--font-display);
+    font-size:14px;
+    padding:2px 10px;
+    background:var(--gold-soft);
+    color:var(--gold);
+    border-radius:3px;
+    white-space:nowrap;
+  }
+  .add-row{ margin-bottom:10px; gap:8px; }
+  /* ===== 顶部提醒条 ===== */
+  .topbar{
+    background:var(--card);
+    border:1px solid var(--card-line);
+    border-left:3px solid var(--gold);
+    border-radius:4px;
+    padding:12px 18px;
+    margin-bottom:18px;
+    font-size:13px;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+  }
+  .tb-line{ display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; }
+  .tb-label{ font-weight:600; flex-shrink:0; }
+  .tb-sub{ color:var(--ink-soft); }
+  .tb-urgent{ color:var(--stamp); font-weight:600; }
+  .tb-ok{ color:var(--sage); font-weight:600; }
+  /* ===== 课表（自适应铺满） ===== */
+  .grid-wrap{ overflow-x:auto; }
+  .grid-schedule{
+    display:grid;
+    grid-template-columns:54px repeat(7, minmax(0, 1fr));
+    gap:5px;
+    font-size:12.5px;
+  }
+  .grid-schedule .cell{
+    background:#FFFFFF;
+    border:1px solid var(--card-line);
+    border-radius:3px;
+    padding:7px 8px;
+    min-height:72px;
+    cursor:pointer;
+    overflow-wrap:break-word;
+  }
+  .grid-schedule .cell:hover{ border-color:var(--gold); }
+  .grid-schedule .head{
+    background:transparent;
+    border:none;
+    text-align:center;
+    font-weight:600;
+    min-height:auto;
+    padding:4px;
+    cursor:default;
+    font-size:12.5px;
+  }
+  .grid-schedule .head.today-col{ color:var(--stamp); }
+  .grid-schedule .period-label{
+    background:transparent;
+    border:none;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    color:var(--ink-soft);
+    min-height:72px;
+    cursor:default;
+    text-align:center;
+    font-size:11px;
+    line-height:1.5;
+    padding:4px;
+  }
+  .grid-schedule .cell.today-col{ border-color:var(--stamp-soft); background:#FDF6F4; }
+  .cell .cname{ font-weight:600; word-break:break-word; }
+  .cell .croom{ color:var(--ink-soft); font-size:11px; word-break:break-word; }
+  .cell .cweek{ color:var(--gold); font-size:10.5px; margin-top:2px; }
+  .ccourse.inactive{ opacity:.45; }
+  .grid-schedule.editing .cell:hover{ border:1px dashed var(--gold); background:#FFFDF0; }
+  .sch-tabs{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+  .sch-tab{
+    padding:6px 14px;
+    border:1px solid var(--card-line);
+    border-radius:3px;
+    font-size:13px;
+    cursor:pointer;
+    background:#fff;
+    user-select:none;
+  }
+  .sch-tab:hover{ border-color:var(--gold); }
+  .sch-tab.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .sch-tab .wk{ color:var(--gold); font-size:11px; margin-left:4px; }
+  .sch-tab.active .wk{ color:#E8C46B; }
+  .sch-add{
+    padding:6px 14px;
+    border:1px dashed var(--card-line);
+    border-radius:3px;
+    font-size:13px;
+    cursor:pointer;
+    background:transparent;
+    color:var(--ink-soft);
+  }
+  .sch-add:hover{ border-color:var(--gold); color:var(--gold); }
+  .period-time-row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .period-time-row .pt{
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:11.5px; color:var(--ink-soft);
+  }
+  .period-time-row .pt input{ padding:4px 6px; font-size:12px; width:82px; }
+  /* ===== 计时器 ===== */
+  .seg{ display:inline-flex; border:1px solid var(--card-line); border-radius:3px; overflow:hidden; }
+  .seg button{
+    border:none; border-radius:0; background:transparent; color:var(--ink-soft);
+    padding:7px 18px; font-size:13.5px;
+  }
+  .seg button.active{ background:var(--ink); color:var(--paper); }
+  .seg button:hover{ opacity:1; }
+  .timer-display{
+    font-family:var(--font-display);
+    font-size:68px;
+    font-variant-numeric:tabular-nums;
+    text-align:center;
+    letter-spacing:3px;
+    margin:26px 0 4px;
+    line-height:1.1;
+  }
+  .timer-display.running{ color:var(--stamp); }
+  .timer-mode-text{ text-align:center; color:var(--ink-soft); font-size:12.5px; margin-bottom:18px; }
+  .timer-ctrl{ display:flex; gap:10px; justify-content:center; margin-bottom:8px; flex-wrap:wrap; }
+  .pill{
+    padding:6px 15px; border-radius:999px; border:1px solid var(--card-line);
+    background:#fff; font-size:12.5px; cursor:pointer; color:var(--ink);
+  }
+  .pill:hover{ border-color:var(--gold); }
+  .pill.active{ background:var(--gold-soft); border-color:var(--gold); color:var(--gold); font-weight:600; }
+  /* ===== 模态框 ===== */
+  .modal-mask{
+    position:fixed; inset:0; background:rgba(38,49,74,.42);
+    display:flex; align-items:center; justify-content:center; z-index:50; padding:16px;
+  }
+  .modal{
+    background:var(--card); border:1px solid var(--card-line); border-radius:5px;
+    padding:22px 24px; width:min(600px, 94vw);
+    box-shadow:0 14px 44px rgba(38,49,74,.2);
+    max-height:88vh; overflow-y:auto;
+  }
+  .modal h3{ font-family:var(--font-display); font-size:17px; margin:0 0 16px 0; }
+  .course-row{
+    display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; align-items:center;
+    padding:8px; border:1px solid var(--card-line); border-radius:4px; background:#FBF8F0;
+  }
+  .course-row input{ min-width:0; }
+  .course-row .cr-name{ flex:1.2; min-width:104px; }
+  .course-row .cr-room{ flex:1; min-width:84px; }
+  .course-row .cr-weeks{ flex:1.5; min-width:120px; }
+  .mrow{ display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .mrow > label{ width:88px; font-size:13px; color:var(--ink-soft); flex-shrink:0; }
+  .mrow input, .mrow select{ flex:1; min-width:0; }
+  .mhint{ font-size:11.5px; color:var(--ink-soft); margin:-6px 0 12px 98px; line-height:1.5; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+  /* ===== toast ===== */
+  .toast{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(80px);
+    background:var(--ink); color:var(--paper); font-size:13.5px;
+    padding:10px 20px; border-radius:4px; opacity:0; transition:all .3s;
+    pointer-events:none; z-index:60; max-width:88vw;
+    box-shadow:0 8px 24px rgba(38,49,74,.3);
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .hidden{ display:none !important; }
+  .empty{ color:var(--ink-soft); font-size:13px; padding:8px 0; }
+  ::placeholder{ color:#B7BECF; }
+  .divider{ border:none; border-top:1px solid var(--card-line); margin:16px 0; }
+
+  /* ===== App 化视觉与交互增强 ===== */
+  *{ -webkit-tap-highlight-color: transparent; }
+  .card{
+    border-radius:14px;
+    box-shadow:0 2px 12px rgba(38,49,74,.06);
+    transition:box-shadow .15s, transform .15s;
+  }
+  button{ border-radius:10px; transition:transform .1s, opacity .15s; }
+  button:active{ transform:scale(.95); opacity:.85; }
+  .tag{ border-radius:999px; }
+  input, select, textarea{ border-radius:9px; }
+  .list-item{
+    border-radius:10px;
+    padding:10px 8px;
+    transition:background .15s;
+  }
+  .list-item:hover{ background:rgba(38,49,74,.025); }
+  input[type="checkbox"]{
+    appearance:none; -webkit-appearance:none;
+    width:21px; height:21px; min-width:21px;
+    border:1.5px solid var(--card-line);
+    border-radius:7px;
+    background:#fff;
+    cursor:pointer;
+    position:relative;
+    transition:background .15s, border-color .15s, transform .1s;
+    flex-shrink:0;
+  }
+  input[type="checkbox"]:active{ transform:scale(.9); }
+  input[type="checkbox"]:checked{ background:var(--sage); border-color:var(--sage); }
+  input[type="checkbox"]:checked::after{
+    content:"";
+    position:absolute; left:6px; top:2px;
+    width:6px; height:11px;
+    border:solid #fff; border-width:0 2px 2px 0;
+    transform:rotate(40deg);
+  }
+  .pill{ transition:transform .1s; }
+  .pill:active{ transform:scale(.94); }
+  .tab{ transition:background .15s, transform .1s; }
+  .tab:active{ transform:scale(.93); }
+  .panel{ animation:panelIn .22s ease; }
+  @keyframes panelIn{
+    from{ opacity:0; transform:translateY(6px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  /* 二级分段控件（用于同一页面内切换视图，如「考公」页的 打卡 / 大纲） */
+  .seg2{
+    display:inline-flex; background:#EDE6D3; border-radius:999px; padding:3px;
+    gap:2px; margin-bottom:16px;
+  }
+  .seg2 .seg2-btn{
+    border:none; background:transparent; color:var(--ink-soft);
+    padding:8px 18px; border-radius:999px; font-size:13px; cursor:pointer;
+    font-family:var(--font-body); white-space:nowrap;
+  }
+  .seg2 .seg2-btn.active{ background:var(--ink); color:var(--paper); font-weight:600; }
+  /* 考纲总览：科目卡片 */
+  .syl-subject{ margin-bottom:4px; }
+  .syl-subject-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+  .syl-subject-name{ font-family:var(--font-display); font-size:15px; font-weight:600; }
+  .syl-progress-bar{
+    height:6px; border-radius:999px; background:#EDE6D3; overflow:hidden; margin-top:6px;
+  }
+  .syl-progress-fill{
+    height:100%; background:var(--sage); border-radius:999px; transition:width .3s ease;
+  }
+  .syl-module{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 4px; border-bottom:1px dashed var(--card-line);
+    cursor:pointer; user-select:none;
+  }
+  .syl-module:last-child{ border-bottom:none; }
+  .syl-module .syl-name{ flex:1; font-size:13.5px; transition:color .15s; }
+  .syl-module.done .syl-name{ color:var(--ink-soft); text-decoration:line-through; }
+  .syl-check{
+    width:22px; height:22px; min-width:22px; border-radius:50%;
+    border:1.5px solid var(--card-line); background:#fff;
+    display:flex; align-items:center; justify-content:center;
+    transition:background .15s, border-color .15s, transform .1s;
+  }
+  .syl-module:active .syl-check{ transform:scale(.88); }
+  .syl-module.done .syl-check{ background:var(--sage); border-color:var(--sage); }
+  .syl-check svg{ width:12px; height:12px; opacity:0; transition:opacity .15s; }
+  .syl-module.done .syl-check svg{ opacity:1; }
+  .syl-ring{
+    width:88px; height:88px; flex-shrink:0;
+  }
+  .syl-ring-wrap{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+  .syl-ring-num{ font-family:var(--font-display); font-size:20px; }
+  .syl-custom-tag{ font-size:10.5px; color:var(--ink-soft); margin-left:6px; }
+  /* ===== 统计：热力图 + 柱状图 ===== */
+  .heatmap-scroll{ overflow-x:auto; padding-bottom:4px; }
+  .heatmap-grid{
+    display:grid;
+    grid-template-rows:repeat(7, 15px);
+    grid-auto-flow:column;
+    grid-auto-columns:15px;
+    gap:3px;
+    width:max-content;
+  }
+  .heat-cell{
+    width:15px; height:15px; border-radius:3px;
+    background:var(--card-line);
+    cursor:default;
+  }
+  .heat-legend{ display:flex; align-items:center; gap:4px; margin-top:12px; }
+  .heat-swatch{ width:13px; height:13px; border-radius:3px; }
+  .bar-chart{
+    display:flex; align-items:flex-end; gap:5px;
+    height:140px; padding-top:8px;
+  }
+  .bar-col{
+    flex:1; height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+    gap:5px; min-width:0;
+  }
+  .bar-fill{
+    width:70%; min-height:2px;
+    background:var(--gold);
+    border-radius:4px 4px 0 0;
+    transition:height .3s ease;
+  }
+  .bar-col.today .bar-fill{ background:var(--stamp); }
+  .bar-label{ font-size:9.5px; color:var(--ink-soft); white-space:nowrap; }
+  /* ===== 首页总览卡片 ===== */
+  .ov-grid{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:12px;
+    margin-top:4px;
+  }
+  .ov-card{
+    background:var(--card);
+    border:1px solid var(--card-line);
+    border-radius:14px;
+    padding:16px 14px;
+    box-shadow:0 2px 12px rgba(38,49,74,.06);
+    cursor:pointer;
+    transition:transform .1s, box-shadow .15s;
+  }
+  .ov-card:active{ transform:scale(.96); box-shadow:0 1px 4px rgba(38,49,74,.08); }
+  .ov-icon{ font-size:20px; margin-bottom:6px; }
+  .ov-title{ font-size:12px; color:var(--ink-soft); margin-bottom:6px; }
+  .ov-num{ font-family:var(--font-display); font-size:19px; line-height:1.2; word-break:break-word; }
+  .ov-sub{ font-size:11px; color:var(--ink-soft); margin-top:3px; line-height:1.4; }
+  /* ===== 小屏：导航仍在左侧（收窄） ===== */
+  @media (max-width: 900px){
+    .desk{ padding:18px 14px 104px; }
+    .panel-grid{ grid-template-columns:1fr; }
+  }
+  @media (max-width: 760px){
+    .app-head .app-title{ font-size:18px; }
+    .app-head .muted{ font-size:10.5px; }
+    .desk{ padding:14px 10px 98px; }
+    .tab{ font-size:9px; padding:6px 0 4px; }
+    .tab .tico{ font-size:16px; }
+    .timer-display{ font-size:48px; }
+    .grid-schedule{ font-size:10.5px; }
+    .grid-schedule .cell{ min-height:60px; padding:5px 5px; }
+    .ov-title{ font-size:11px; }
+    .ov-num{ font-size:16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="desk">
+
+  <!-- 页头 -->
+  <div class="app-head">
+    <span class="app-title">工作台</span>
+    <span class="muted" id="todayLabel"></span>
+    <span class="muted" id="storageHint" style="color:var(--stamp);"></span>
+  </div>
+
+  <!-- 顶部提醒条：所有页面常驻 -->
+  <div class="topbar" id="topbar"></div>
+
+    <!-- 首页：今日总览 -->
+    <section id="dashboard" class="panel">
+      <h2><span id="dashGreeting">你好</span></h2>
+      <p class="desc" id="dashDate"></p>
+
+      <div class="panel-grid">
+        <div class="card wide">
+          <h3>考试倒计时<span class="muted" id="dashStreak"></span></h3>
+          <div class="stat-row">
+            <div class="stat due"><div class="num" id="dashCountdown">--</div><div class="label">距考试天数</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ov-grid">
+        <div class="ov-card" onclick="activateTab('exam')">
+          <div class="ov-icon">✅</div>
+          <div class="ov-title">今日任务</div>
+          <div class="ov-num" id="dashTaskNum">--</div>
+          <div class="ov-sub" id="dashTaskSub"></div>
+        </div>
+        <div class="ov-card" onclick="activateTab('homework')">
+          <div class="ov-icon">📝</div>
+          <div class="ov-title">作业待办</div>
+          <div class="ov-num" id="dashHwNum">--</div>
+          <div class="ov-sub" id="dashHwSub"></div>
+        </div>
+        <div class="ov-card" onclick="activateTab('timer')">
+          <div class="ov-icon">⏱</div>
+          <div class="ov-title">今日专注</div>
+          <div class="ov-num" id="dashFocusNum">--</div>
+          <div class="ov-sub" id="dashFocusSub"></div>
+        </div>
+        <div class="ov-card" onclick="activateTab('exam'); switchExamView('syllabus');">
+          <div class="ov-icon">📖</div>
+          <div class="ov-title">考纲总览</div>
+          <div class="ov-num" id="dashSylNum">--</div>
+          <div class="ov-sub" id="dashSylSub"></div>
+        </div>
+        <div class="ov-card" onclick="activateTab('schedule')">
+          <div class="ov-icon">📅</div>
+          <div class="ov-title">今日课程</div>
+          <div class="ov-num" id="dashCourseNum">--</div>
+          <div class="ov-sub" id="dashCourseSub"></div>
+        </div>
+        <div class="ov-card" onclick="activateTab('habit')">
+          <div class="ov-icon">🚿</div>
+          <div class="ov-title">生活习惯</div>
+          <div class="ov-num" id="dashHabitNum">--</div>
+          <div class="ov-sub" id="dashHabitSub"></div>
+        </div>
+        <div class="ov-card" onclick="activateTab('finance')">
+          <div class="ov-icon">💰</div>
+          <div class="ov-title">本月结余</div>
+          <div class="ov-num" id="dashFinNum">--</div>
+          <div class="ov-sub" id="dashFinSub"></div>
+        </div>
+        <div class="ov-card" onclick="activateTab('stats')">
+          <div class="ov-icon">📊</div>
+          <div class="ov-title">打卡统计</div>
+          <div class="ov-sub">查看热力图与专注趋势</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 考公规划：每日 / 本周 / 本月 三张独立卡片 -->
+    <section id="exam" class="panel hidden">
+      <h2>考公规划</h2>
+      <p class="desc" id="examDesc">任务按「每日 / 本周 / 本月」三个周期分门别类，到期自动重置；连续打卡自动累计</p>
+
+      <div class="seg2">
+        <button class="seg2-btn active" id="examViewBtn_cycle" onclick="switchExamView('cycle')">循环打卡</button>
+        <button class="seg2-btn" id="examViewBtn_syllabus" onclick="switchExamView('syllabus')">考纲总览</button>
+      </div>
+
+      <div id="examView_cycle">
+        <div class="panel-grid">
+          <div class="card wide">
+            <h3>考试倒计时与进度</h3>
+            <div class="row">
+              <label class="muted">考试日期</label>
+              <input type="date" id="examDate">
+            </div>
+            <div class="stat-row" style="margin-top:14px;">
+              <div class="stat due"><div class="num" id="examCountdown">--</div><div class="label">距考试天数</div></div>
+              <div class="stat"><div class="num" id="dailyProgress">0%</div><div class="label">今日任务完成</div></div>
+              <div class="stat"><div class="num" id="weekProgress">0%</div><div class="label">本周任务完成</div></div>
+              <div class="stat"><div class="num" id="monthProgress">0%</div><div class="label">本月任务完成</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3><span class="gtag">每日任务</span><span class="muted" id="taskCnt_daily">0 / 0</span></h3>
+            <div class="row add-row">
+              <input type="text" id="taskSubject_daily" placeholder="科目" style="width:82px;">
+              <input type="text" id="taskContent_daily" placeholder="如：图推 10 题" style="flex:1; min-width:96px;">
+              <button class="small" onclick="addTaskTyped('daily')">添加</button>
+            </div>
+            <div id="taskList_daily"></div>
+          </div>
+
+          <div class="card">
+            <h3><span class="gtag">本周任务</span><span class="muted" id="taskCnt_week">0 / 0</span></h3>
+            <div class="row add-row">
+              <input type="text" id="taskSubject_week" placeholder="科目" style="width:82px;">
+              <input type="text" id="taskContent_week" placeholder="如：周模考 1 套" style="flex:1; min-width:96px;">
+              <button class="small" onclick="addTaskTyped('week')">添加</button>
+            </div>
+            <div id="taskList_week"></div>
+          </div>
+
+          <div class="card">
+            <h3><span class="gtag">本月任务</span><span class="muted" id="taskCnt_month">0 / 0</span></h3>
+            <div class="row add-row">
+              <input type="text" id="taskSubject_month" placeholder="科目" style="width:82px;">
+              <input type="text" id="taskContent_month" placeholder="如：月度总结复盘" style="flex:1; min-width:96px;">
+              <button class="small" onclick="addTaskTyped('month')">添加</button>
+            </div>
+            <div id="taskList_month"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="examView_syllabus" class="hidden">
+        <div class="panel-grid">
+          <div class="card wide">
+            <h3>考纲总览 · 整体进度<button class="ghost small" onclick="resetSyllabus()">恢复默认大纲</button></h3>
+            <p class="muted" style="margin:-6px 0 14px;">笔试（行测 + 申论）与面试的常见科目 / 模块划分，勾选表示「已系统学完一轮」，不受每日刷新影响；具体考纲以你所报考的地区、岗位公告为准。</p>
+            <div class="syl-ring-wrap">
+              <div class="syl-progress-bar" style="flex:1; min-width:160px; height:10px;">
+                <div class="syl-progress-fill" id="sylTotalFill" style="width:0%;"></div>
+              </div>
+              <div class="syl-ring-num"><span id="sylTotalPct">0%</span> <span class="muted" style="font-size:12px;">· <span id="sylTotalCnt">0 / 0</span> 模块</span></div>
+            </div>
+          </div>
+
+          <div id="syllabusSubjects"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 生活习惯 -->
+    <section id="habit" class="panel hidden">
+      <h2>生活习惯</h2>
+      <p class="desc">记录每一次洗澡、洗头、洗衣的日期（完整保留历史），根据季节给出建议</p>
+
+      <div class="panel-grid">
+        <div class="card wide">
+          <h3>状态一览</h3>
+          <div class="stat-row">
+            <div class="stat" id="stShowerBox"><div class="num" id="stShowerLast">--</div><div class="label">上次洗澡</div></div>
+            <div class="stat" id="stHairBox"><div class="num" id="stHairLast">--</div><div class="label">上次洗头</div></div>
+            <div class="stat" id="stLaundryBox"><div class="num" id="stLaundryLast">--</div><div class="label">上次洗衣</div></div>
+          </div>
+          <div class="stat-row" style="margin-top:10px;">
+            <div class="stat"><div class="num" id="stShowerNext">--</div><div class="label">建议下次洗澡</div></div>
+            <div class="stat"><div class="num" id="stHairNext">--</div><div class="label">建议下次洗头</div></div>
+            <div class="stat"><div class="num" id="stLaundryNext">--</div><div class="label">建议下次洗衣</div></div>
+          </div>
+          <div class="stat-row" style="margin-top:10px;">
+            <div class="stat due" id="stShowerStatusBox"><div class="num" id="stShowerStatus">--</div><div class="label">洗澡状态</div></div>
+            <div class="stat due" id="stHairStatusBox"><div class="num" id="stHairStatus">--</div><div class="label">洗头状态</div></div>
+            <div class="stat due" id="stLaundryStatusBox"><div class="num" id="stLaundryStatus">--</div><div class="label">洗衣状态</div></div>
+          </div>
+          <p class="muted" style="margin-top:12px;">内衣建议每天更换，不受季节影响。</p>
+        </div>
+
+        <div class="card">
+          <h3>记一笔</h3>
+          <div class="row" style="margin-bottom:10px;">
+            <button class="small ghost" onclick="quickRecord('shower')">🚿 今天洗了澡</button>
+            <button class="small ghost" onclick="quickRecord('hair')">💧 今天洗了头</button>
+            <button class="small ghost" onclick="quickRecord('laundry')">🧺 今天洗了衣</button>
+          </div>
+          <div class="row">
+            <span class="muted">补记：</span>
+            <select id="recKind" style="width:96px;">
+              <option value="shower">洗澡</option>
+              <option value="hair">洗头</option>
+              <option value="laundry">洗衣</option>
+            </select>
+            <input type="date" id="recDate">
+            <button onclick="addRecord()">补记</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>季节与喝水</h3>
+          <div class="row" style="margin-bottom:8px;">
+            <select id="seasonSelect" onchange="saveSeason()">
+              <option value="summer">夏季 · 炎热</option>
+              <option value="spring_fall">春秋 · 温和</option>
+              <option value="winter">冬季 · 寒冷</option>
+            </select>
+          </div>
+          <p class="muted" id="seasonHint" style="margin:0 0 14px;"></p>
+          <hr class="divider" style="margin:12px 0;">
+          <div class="row">
+            <span class="muted">今日喝水</span>
+            <button class="small" onclick="addWater()">+1 杯</button>
+            <button class="ghost small" onclick="resetWater()">重置</button>
+            <span id="waterCount" style="font-family:var(--font-display); font-size:18px;">0</span>
+            <span class="muted">/ 8 杯</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>
+            历史记录
+            <span class="row" style="gap:6px;">
+              <button class="small ghost filter-btn" onclick="setRecFilter('all')" id="recFilterAll">全部</button>
+              <button class="small ghost filter-btn" onclick="setRecFilter('shower')" id="recFilterShower">洗澡</button>
+              <button class="small ghost filter-btn" onclick="setRecFilter('hair')" id="recFilterHair">洗头</button>
+              <button class="small ghost filter-btn" onclick="setRecFilter('laundry')" id="recFilterLaundry">洗衣</button>
+            </span>
+          </h3>
+          <div id="recList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 收支记录 -->
+    <section id="finance" class="panel hidden">
+      <h2>收支记录</h2>
+      <p class="desc">记录每一笔收入与支出</p>
+
+      <div class="panel-grid">
+        <div class="card wide">
+          <div class="stat-row">
+            <div class="stat"><div class="num" id="finIncome">¥0</div><div class="label">本月收入</div></div>
+            <div class="stat"><div class="num" id="finExpense">¥0</div><div class="label">本月支出</div></div>
+            <div class="stat"><div class="num" id="finBalance">¥0</div><div class="label">结余</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>记一笔</h3>
+          <div class="row" style="margin-bottom:10px;">
+            <select id="finType">
+              <option value="expense">支出</option>
+              <option value="income">收入</option>
+            </select>
+            <input type="number" id="finAmount" placeholder="金额" style="width:96px;">
+            <select id="finCategory">
+              <option>餐饮</option><option>交通</option><option>购物</option>
+              <option>学习</option><option>娱乐</option><option>兼职/收入</option><option>其他</option>
+            </select>
+            <input type="date" id="finDate">
+          </div>
+          <div class="row">
+            <input type="text" id="finNote" placeholder="备注（可选）" style="flex:1;">
+            <button onclick="addFinance()">添加</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>明细</h3>
+          <div id="finList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 课程表：默认只显示课表本体，编辑功能收进「编辑」面板 -->
+    <section id="schedule" class="panel hidden">
+      <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:16px; gap:10px;">
+        <div style="min-width:0;">
+          <h2 style="margin:0; font-size:24px;">课程表</h2>
+          <p class="desc" style="margin:4px 0 0;" id="schSubTitle"></p>
+        </div>
+        <div class="row" style="gap:8px; flex-shrink:0;">
+          <button class="pill" id="onlyWeekBtn" onclick="toggleOnlyThisWeek()">仅看本周</button>
+          <button id="schEditBtn" onclick="toggleSchEdit()">✏️ 编辑</button>
+        </div>
+      </div>
+
+      <!-- 编辑面板：点「编辑」才出现 -->
+      <div id="schEditPanel" class="hidden panel-grid" style="margin-bottom:16px;">
+        <div class="card">
+          <h3>课表方案</h3>
+          <div class="sch-tabs" id="schTabs" style="margin-bottom:10px;"></div>
+          <p class="muted" id="curSchDesc" style="margin:0 0 12px;"></p>
+          <div class="row" style="justify-content:space-between;">
+            <span class="muted">点标签切换编辑对象</span>
+            <button class="danger" id="delSchBtn" onclick="askDeleteSch()">删除此方案</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>学期与提醒</h3>
+          <div class="row" style="margin-bottom:6px;">
+            <label class="muted">学期第一周周一</label>
+            <input type="date" id="semesterStart" onchange="saveSemesterStart()">
+          </div>
+          <p class="muted" id="weekInfo" style="margin:0 0 12px;"></p>
+          <div class="row" style="margin-bottom:10px;">
+            <label class="muted">课前提醒</label>
+            <input type="number" id="notifyAhead" min="5" max="180" step="5" style="width:70px;" onchange="saveNotifyAhead()">
+            <span class="muted">分钟前通知</span>
+            <button class="small" id="classNotifyBtn" onclick="toggleClassNotify()">开启上课提醒</button>
+          </div>
+          <p class="muted" id="notifyPermHint" style="margin:0 0 12px;"></p>
+          <div class="row" style="margin-bottom:8px;">
+            <span class="muted">各节次上课时间</span>
+          </div>
+          <div class="row" id="periodTimesRow" style="gap:8px;"></div>
+        </div>
+        <div class="card">
+          <h3>课表备份</h3>
+          <p class="muted" style="margin:-4px 0 12px;">只导出/导入课程表本身（所有方案 + 学期设置），不影响作业、任务、收支等其他数据，方便在多台设备间同步课表。</p>
+          <div class="row">
+            <button onclick="exportSchedule()">⬇️ 导出课表</button>
+            <button class="ghost" onclick="triggerScheduleImport()">⬆️ 导入课表</button>
+            <input type="file" id="scheduleImportInput" accept="application/json,.json" class="hidden" onchange="handleScheduleImportFile(this)">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="grid-wrap">
+          <div class="grid-schedule" id="scheduleGrid"></div>
+        </div>
+        <p class="muted" style="margin-top:10px;" id="schGridHint"></p>
+      </div>
+    </section>
+
+    <!-- 作业追踪 -->
+    <section id="homework" class="panel hidden">
+      <h2>作业追踪</h2>
+      <p class="desc">每天打开工作台会提醒剩余作业与最近截止；越紧急排得越靠前</p>
+
+      <div class="panel-grid">
+        <div class="card">
+          <h3>概览与新增</h3>
+          <div class="stat-row" style="margin-bottom:14px;">
+            <div class="stat due"><div class="num" id="hwPending">0</div><div class="label">未完成作业</div></div>
+            <div class="stat due"><div class="num" id="hwTodayDue">0</div><div class="label">今日截止</div></div>
+            <div class="stat"><div class="num" id="hwNearest">--</div><div class="label">最近截止</div></div>
+          </div>
+          <div class="row" style="margin-bottom:10px;">
+            <input type="text" id="hwCourse" placeholder="课程" style="width:120px;">
+            <input type="text" id="hwContent" placeholder="作业内容" style="flex:1; min-width:140px;">
+          </div>
+          <div class="row">
+            <span class="muted">截止日期</span>
+            <input type="date" id="hwDue">
+            <button onclick="addHomework()">添加</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>
+            待办
+            <button class="small ghost" onclick="clearDoneHw()">清除已完成</button>
+          </h3>
+          <div id="hwList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 专注计时 -->
+    <section id="timer" class="panel hidden">
+      <h2>专注计时</h2>
+      <p class="desc">正计时自由记录，倒计时到点提示音 + 通知；刷新页面计时不会丢失</p>
+
+      <div class="panel-grid">
+        <div class="card wide" style="text-align:center;">
+          <div class="seg">
+            <button id="segFocus" class="active" onclick="switchTimerMode('focus')">正计时</button>
+            <button id="segCd" onclick="switchTimerMode('cd')">倒计时</button>
+          </div>
+
+          <div class="timer-display" id="timerDisp">00:00</div>
+          <div class="timer-mode-text" id="timerModeText">自由专注 · 随时暂停</div>
+
+          <div class="timer-ctrl" id="timerCtrl"></div>
+
+          <div id="cdSetup" class="hidden" style="margin-top:14px;">
+            <div class="row" style="justify-content:center; gap:8px;">
+              <button class="pill" onclick="setCdPreset(25, this)">25 分钟</button>
+              <button class="pill" onclick="setCdPreset(45, this)">45 分钟</button>
+              <button class="pill" onclick="setCdPreset(60, this)">60 分钟</button>
+              <input type="number" id="cdCustom" min="1" max="600" placeholder="自定义分钟" style="width:110px;">
+              <button class="small ghost" onclick="setCdCustom()">设定</button>
+            </div>
+          </div>
+
+          <hr class="divider">
+          <div class="stat-row">
+            <div class="stat ok"><div class="num" id="focusCount">0</div><div class="label">今日专注（次）</div></div>
+            <div class="stat ok"><div class="num" id="focusMinutes">0</div><div class="label">今日专注（分钟）</div></div>
+          </div>
+          <p class="muted" style="margin-top:12px;">倒计时结束后播放提示音并弹出通知；提醒功能需保持本页面处于打开状态。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 统计：打卡趋势 -->
+    <section id="stats" class="panel hidden">
+      <h2>打卡统计</h2>
+      <p class="desc">每日任务打卡热力图与专注时长趋势，数据从你开始使用本页面起持续累积</p>
+
+      <div class="panel-grid">
+        <div class="card wide">
+          <h3>每日任务打卡热力图<span class="muted" id="checkinStreakLabel"></span></h3>
+          <div class="heatmap-scroll">
+            <div class="heatmap-grid" id="checkinHeatmap"></div>
+          </div>
+          <div class="heat-legend">
+            <span class="muted" style="font-size:11px;">少</span>
+            <span class="heat-swatch" style="background:#EDE6D3;"></span>
+            <span class="heat-swatch" style="background:#CFE0D5;"></span>
+            <span class="heat-swatch" style="background:#9AC2A8;"></span>
+            <span class="heat-swatch" style="background:#5E9974;"></span>
+            <span class="heat-swatch" style="background:var(--sage);"></span>
+            <span class="muted" style="font-size:11px;">多</span>
+          </div>
+          <p class="muted" style="margin-top:10px;">颜色代表当天每日任务的完成比例；没有颜色格表示当天还没有打开本页面记录。</p>
+        </div>
+
+        <div class="card wide">
+          <h3>专注时长趋势（最近 14 天）<span class="muted" id="focusTrendTotal"></span></h3>
+          <div class="bar-chart" id="focusTrendChart"></div>
+        </div>
+
+        <div class="card wide">
+          <h3>数据备份</h3>
+          <p class="muted" style="margin:-6px 0 14px;">所有数据只存在这台设备的浏览器里，导出成文件保存好，换设备或清缓存时可以导入恢复。</p>
+          <div class="row">
+            <button onclick="exportData()">⬇️ 导出备份</button>
+            <button class="ghost" onclick="triggerImport()">⬆️ 导入恢复</button>
+            <input type="file" id="importFileInput" accept="application/json,.json" class="hidden" onchange="handleImportFile(this)">
+          </div>
+          <p class="muted" style="margin-top:10px;">导入会完全覆盖当前数据，操作前建议先导出一份现有数据作为保险。</p>
+        </div>
+      </div>
+    </section>
+
+</div>
+
+<!-- 底部导航栏（App 风格） -->
+<nav class="tabbar">
+  <div class="tab active" data-tab="dashboard"><span class="tico">🏠</span><span>首页</span></div>
+  <div class="tab" data-tab="exam"><span class="tico">📖</span><span>考公</span></div>
+  <div class="tab" data-tab="habit"><span class="tico">🚿</span><span>习惯</span></div>
+  <div class="tab" data-tab="finance"><span class="tico">💰</span><span>收支</span></div>
+  <div class="tab" data-tab="schedule"><span class="tico">📅</span><span>课表</span></div>
+  <div class="tab" data-tab="homework"><span class="tico">📝</span><span>作业</span></div>
+  <div class="tab" data-tab="timer"><span class="tico">⏱</span><span>计时</span></div>
+  <div class="tab" data-tab="stats"><span class="tico">📊</span><span>统计</span></div>
+</nav>
+
+<!-- 通用模态框 -->
+<div class="modal-mask hidden" id="modalMask">
+  <div class="modal">
+    <h3 id="modalTitle"></h3>
+    <div id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal()">取消</button>
+      <button id="modalOk" onclick="onModalOk()">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ================= 存储安全封装 =================
+// 部分环境（预览沙箱、隐私模式、受限 WebView）访问 localStorage 会直接抛错，
+// 这里做探测并降级为内存存储，保证功能在任何环境下都可用。
+const STORE_KEY = "workbench_data_v2";
+const storage = (function(){
+  let mem = {};
+  let usable = false;
+  try{
+    const t = "__wb_probe__";
+    window.localStorage.setItem(t, "1");
+    window.localStorage.removeItem(t);
+    usable = true;
+  }catch(e){ usable = false; }
+  return {
+    usable: usable,
+    get: function(k){
+      if(usable){ try{ return window.localStorage.getItem(k); }catch(e){} }
+      return (k in mem) ? mem[k] : null;
+    },
+    set: function(k, v){
+      if(usable){ try{ window.localStorage.setItem(k, v); return; }catch(e){} }
+      mem[k] = v;
+    }
+  };
+})();
+
+// ================= 导航与模态框绑定（最先执行，确保任何情况下都能点击） =================
+function activateTab(key){
+  const tabEl = document.querySelector('.tab[data-tab="' + key + '"]');
+  if(!tabEl) return;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.add("hidden"));
+  tabEl.classList.add("active");
+  document.getElementById(key).classList.remove("hidden");
+  try{ renderTopbar(); }catch(e){}
+  if(key === "stats"){ try{ renderStats(); }catch(e){} }
+  if(key === "dashboard"){ try{ renderDashboard(); }catch(e){} }
+}
+document.querySelectorAll(".tab").forEach(tab=>{
+  tab.addEventListener("click", ()=> activateTab(tab.dataset.tab));
+});
+document.getElementById("modalMask").addEventListener("click", e=>{
+  if(e.target === document.getElementById("modalMask")) closeModal();
+});
+
+function pad(n){ return String(n).padStart(2,"0"); }
+// 修复：toISOString 在东八区早上 8 点前会错算成前一天，这里改用本地日期
+function localDateStr(d){
+  d = d || new Date();
+  return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
+}
+function todayStr(){ return localDateStr(); }
+function parseDate(s){
+  if(!s) return null;
+  const [y,m,d] = s.split("-").map(Number);
+  return new Date(y, m-1, d);
+}
+function addDaysStr(s, n){
+  const d = parseDate(s); d.setDate(d.getDate()+n);
+  return localDateStr(d);
+}
+function daysBetween(a,b){ return Math.round((parseDate(b) - parseDate(a)) / 86400000); }
+// 本周周一的日期字符串，作为「周」的唯一标识
+function weekKeyStr(){
+  const d = new Date();
+  const off = (d.getDay()+6)%7; // 周一=0
+  d.setDate(d.getDate()-off);
+  return localDateStr(d);
+}
+function monthKeyStr(){ return todayStr().slice(0,7); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function esc(s){
+  return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ================= 数据结构与迁移 =================
+const DEFAULT_PERIOD_TIMES = ["08:00","10:00","14:00","16:00","19:00"];
+function defaultData(){
+  return {
+    version: 2,
+    examDate: "",
+    examSyllabus: defaultSyllabus(), // [{id, name, modules:[{id,name,done,custom}]}]
+    checkinLog: {},          // "YYYY-MM-DD" -> {done, total}，每日任务打卡快照，用于统计趋势
+    tasks: [],               // {id, subject, content, type: daily|week|month, lastDone, streak}
+    habits: { season:"spring_fall", water:{}, records:[] }, // records: {id, date, kind}
+    finance: [],
+    schedules: {},           // id -> {id, name, mode: range|odd|even, from, to, grid}
+                             // grid cell: 课程数组 [{name, room, weeks}]  weeks 如 "1-4,6-11"，空=整个方案期间
+    scheduleOrder: [],
+    scheduleMeta: { semesterStart:"", periodTimes: DEFAULT_PERIOD_TIMES.slice(), notifyAhead:30, classNotifyOn:false },
+    homework: [],
+    focus: {},               // "YYYY-MM-DD" -> {count, minutes}
+    timer: { mode:"focus", running:false, startTs:0, accumMs:0, remainMs:0, endTs:0, preset:0 },
+    notified: { date:"", keys:[] },
+    lastHwNotifyDay: ""
+  };
+}
+// ---- 数据归一化：统一把格子转成「课程数组 + weeks 周次字符串」格式 ----
+// 旧 v1/v2 格式: {name, room} 或 {name, room, from, to}
+// 新格式: [{name, room, weeks: "1-4,6-11" | null}]
+// ---- 预置课表：来自用户提供的真实课表截图，首次打开（本地无数据）时自动填入 ----
+function defaultScheduleGrid(){
+  const c = (name, room, weeks) => ({ name, room, weeks });
+  return {
+    // 周一
+    "0-1": [ c("软件工程与方法学","教b302","1-4,6-11") ],
+    "0-2": [ c("数字短片创作","实b203","10") ],
+    "0-3": [ c("服务器后端开发","教b207","1-4,6-9"), c("数字短片创作","实b203","10") ],
+    // 周二
+    "1-0": [ c("互动媒体设计","实b203","1-4,6-9"), c("数字短片创作","实b203","10") ],
+    "1-1": [ c("数字短片创作","实b203","10") ],
+    "1-2": [ c("交互产品开发","实b203","10-13"), c("数字短片创作","实b203","1-4"), c("数字短片创作","实b201","6-7") ],
+    "1-3": [ c("交互产品开发","实b203","10-13"), c("数字短片创作","实b203","1-4"), c("数字短片创作","实b201","6-7") ],
+    // 周三
+    "2-0": [ c("软件工程与方法学","教b302","1-4,6-11"), c("服务器后端开发","实b302","12-14") ],
+    "2-1": [ c("服务器后端开发","实b302","10-14"), c("服务器后端开发","教b207","1-4,6-9") ],
+    // 周四
+    "3-0": [ c("互动媒体设计","实b203","6-9") ],
+    "3-1": [ c("互动媒体设计","实b203","6-9") ],
+    "3-3": [ c("专业英语","实b504","1-3,5-17") ],
+    // 周五
+    "4-0": [ c("算法设计与分析","实b203","11-14"), c("游戏开发项目实战","实b302","5-9") ],
+    "4-1": [ c("算法设计与分析","实b402","1-2,5-14") ],
+    "4-2": [ c("游戏开发项目实战","实b302","5-9") ],
+    "4-3": [ c("游戏开发项目实战","实b302","5-9") ],
+    "4-4": [ c("游戏开发项目实战","实b302","9") ]
+  };
+}
+function normalizeCell(entry){
+  if(Array.isArray(entry)) return entry.filter(c=>c && c.name);
+  if(!entry || !entry.name) return null;
+  let weeks = null;
+  if(entry.from != null && entry.to != null) weeks = entry.from + "-" + entry.to;
+  else if(entry.from != null) weeks = entry.from + "-99";   // 第 X 周起（99 视为学期末）
+  else if(entry.to != null) weeks = "1-" + entry.to;        // 至第 X 周
+  return [{ name: entry.name, room: entry.room || "", weeks: weeks }];
+}
+function normalizeSchedules(d){
+  Object.keys(d.schedules || {}).forEach(sid=>{
+    const s = d.schedules[sid];
+    if(!s || !s.grid) return;
+    Object.keys(s.grid).forEach(k=>{
+      const v = normalizeCell(s.grid[k]);
+      if(v && v.length) s.grid[k] = v;
+      else delete s.grid[k];
+    });
+  });
+  return d;
+}
+function loadData(){
+  return normalizeSchedules(loadDataRaw());
+}
+function loadDataRaw(){
+  const base = defaultData();
+  const raw = storage.get(STORE_KEY);
+  if(!raw){
+    // 尝试读取旧版本数据并迁移
+    const oldRaw = storage.get("workbench_data_v1");
+    if(oldRaw){ try{ return migrateV1(JSON.parse(oldRaw), base); }catch(e){} }
+    const sid = uid();
+    base.schedules[sid] = { id:sid, name:"课表一", mode:"range", from:1, to:25, grid: defaultScheduleGrid() };
+    base.scheduleOrder = [sid];
+    return base;
+  }
+  let d = null;
+  try{ d = JSON.parse(raw); }catch(e){}
+  if(!d) return base;
+  if(d.version === 2){
+    // 合并默认值，防止字段缺失
+    const merged = Object.assign(base, d);
+    merged.habits = Object.assign(base.habits, d.habits||{});
+    merged.scheduleMeta = Object.assign(base.scheduleMeta, d.scheduleMeta||{});
+    merged.timer = Object.assign(base.timer, d.timer||{});
+    return merged;
+  }
+  return migrateV1(d, base);
+}
+function migrateV1(old, base){
+  base.examDate = old.examDate || "";
+  base.tasks = (old.tasks||[]).map(t=>({
+    id: t.id || uid(),
+    subject: t.subject || "综合",
+    content: t.content || "",
+    type: "month",            // 旧任务默认归入「每月」
+    lastDone: t.done ? monthKeyStr() : "",
+    streak: 0
+  }));
+  if(old.habits){
+    base.habits.season = old.habits.season || base.habits.season;
+    base.habits.water = old.habits.water || {};
+    if(old.habits.lastShower) base.habits.records.push({id:uid(), date:old.habits.lastShower, kind:"shower"});
+    if(old.habits.lastLaundry) base.habits.records.push({id:uid(), date:old.habits.lastLaundry, kind:"laundry"});
+  }
+  base.finance = old.finance || [];
+  base.homework = old.homework || [];
+  const sid = uid();
+  const grid = old.schedule && typeof old.schedule === "object" ? old.schedule : {};
+  base.schedules[sid] = { id:sid, name:"默认课表", mode:"range", from:1, to:25, grid };
+  base.scheduleOrder = [sid];
+  return base;
+}
+function saveData(){ storage.set(STORE_KEY, JSON.stringify(data)); }
+let data = loadData();
+
+// ================= 通知 / 提示音 / toast =================
+let toastTimer = null;
+function toast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove("show"), 3600);
+}
+function notify(title, body){
+  toast(body ? (title + "：" + body) : title);
+  try{
+    if("Notification" in window && Notification.permission === "granted"){
+      new Notification(title, { body: body || "" });
+    }
+  }catch(e){}
+}
+function requestNotifyPermission(){
+  try{
+    if(!("Notification" in window)) { toast("当前浏览器不支持系统通知，将使用页面提醒"); return; }
+    if(Notification.permission === "granted") return;
+    Notification.requestPermission().then(p=>{
+      if(p === "granted") toast("系统通知已开启");
+      else toast("通知权限被拒绝，将使用页面内提醒");
+      renderNotifyPermHint();
+    });
+  }catch(e){ toast("当前环境无法请求通知权限，将使用页面提醒"); }
+}
+function renderNotifyPermHint(){
+  const el = document.getElementById("notifyPermHint");
+  if(!el) return;
+  let txt = "";
+  try{
+    if(!("Notification" in window)) txt = "（浏览器不支持通知）";
+    else if(Notification.permission === "granted") txt = "（通知已授权）";
+    else if(Notification.permission === "denied") txt = "（通知被拒绝，仅页面提醒）";
+    else txt = "（通知未授权）";
+  }catch(e){}
+  el.textContent = txt;
+}
+function beep(times){
+  times = times || 3;
+  try{
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(!Ctx) return;
+    const ctx = new Ctx();
+    for(let i=0;i<times;i++){
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 880;
+      const t = ctx.currentTime + i*0.38;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.35, t+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.32);
+      o.start(t); o.stop(t+0.35);
+    }
+  }catch(e){}
+}
+let titleTimer = null, titleOrig = document.title;
+function flashTitle(msg){
+  stopFlashTitle();
+  let on = false;
+  titleTimer = setInterval(()=>{
+    on = !on;
+    document.title = on ? msg : titleOrig;
+  }, 900);
+  setTimeout(stopFlashTitle, 20000);
+}
+function stopFlashTitle(){
+  if(titleTimer){ clearInterval(titleTimer); titleTimer = null; }
+  document.title = titleOrig;
+}
+document.addEventListener("click", stopFlashTitle);
+
+// ================= 模态框 =================
+let modalOkHandler = null;
+function openModal(title, bodyHtml, okText, onOk){
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalBody").innerHTML = bodyHtml;
+  document.getElementById("modalOk").textContent = okText || "确定";
+  modalOkHandler = onOk;
+  document.getElementById("modalMask").classList.remove("hidden");
+}
+function closeModal(){
+  document.getElementById("modalMask").classList.add("hidden");
+  modalOkHandler = null;
+}
+function onModalOk(){ if(modalOkHandler) modalOkHandler(); }
+
+// ================= 顶部提醒条 =================
+function getWeekNo(){
+  const s = data.scheduleMeta.semesterStart;
+  if(!s) return null;
+  const diff = daysBetween(s, todayStr());
+  if(diff < 0) return 0; // 尚未开学
+  return Math.floor(diff/7) + 1;
+}
+function matchSchedule(weekNo){
+  if(weekNo === null || weekNo === undefined || weekNo <= 0) return null;
+  const list = data.scheduleOrder.map(id=>data.schedules[id]).filter(Boolean);
+  const rangeHit = list.find(s=>s.mode==="range" && weekNo >= s.from && weekNo <= s.to);
+  if(rangeHit) return rangeHit;
+  const parity = list.find(s=>s.mode==="odd" && weekNo % 2 === 1)
+              || list.find(s=>s.mode==="even" && weekNo % 2 === 0);
+  return parity || null;
+}
+// ---- 周次集合解析：支持 "1-4"、"1-4,6-11"、"3,5,7-9" 等写法 ----
+function parseWeeks(str){
+  if(!str || !String(str).trim()) return null;
+  const set = new Set();
+  String(str).split(/[,，;；、\s]+/).forEach(part=>{
+    part = part.trim();
+    if(!part) return;
+    const m = part.match(/^(\d+)\s*[-–~至到]\s*(\d+)$/);
+    if(m){
+      let a = +m[1], b = +m[2];
+      if(a > b){ const t = a; a = b; b = t; }
+      for(let i = a; i <= b; i++) set.add(i);
+    } else {
+      const n = parseInt(part, 10);
+      if(!isNaN(n) && n > 0) set.add(n);
+    }
+  });
+  return set.size ? set : null;
+}
+// 某周是否在周次集合内（weeks 为空 = 整个方案期间都上）
+function weeksMatch(weeks, weekNo){
+  if(weekNo === null || weekNo === undefined || weekNo <= 0) return true; // 周次未知时默认显示
+  const set = parseWeeks(weeks);
+  if(!set) return true;
+  return set.has(weekNo);
+}
+// 周次标签文案
+function weeksLabel(weeks){
+  if(!weeks || !String(weeks).trim()) return "";
+  return "第" + String(weeks).trim() + "周";
+}
+// 单门课本周是否上
+function courseOnThisWeek(course, weekNo){
+  if(!course) return false;
+  return weeksMatch(course.weeks, weekNo);
+}
+// 一个时间段（可能有多门课）中本周实际上的第一门课
+function activeCourseInCell(cell, weekNo){
+  if(!Array.isArray(cell) || !cell.length) return null;
+  return cell.find(c=>c && c.name && courseOnThisWeek(c, weekNo)) || null;
+}
+function nextClassToday(){
+  const wk = getWeekNo();
+  if(!wk) return { noWeek:true };
+  const sch = matchSchedule(wk);
+  if(!sch) return { noMatch:true, weekNo:wk };
+  const dIdx = (new Date().getDay()+6)%7;
+  const now = new Date();
+  let hasClass = false;
+  for(let p=0; p<PERIODS.length; p++){
+    const entry = activeCourseInCell(sch.grid[dIdx+"-"+p], wk);
+    const on = !!entry;
+    if(on) hasClass = true;
+    const t = data.scheduleMeta.periodTimes[p];
+    if(!t) continue;
+    const [h,m] = t.split(":").map(Number);
+    const start = new Date(); start.setHours(h, m, 0, 0);
+    if(start > now && on){
+      return { entry, p, start, weekNo:wk, sch };
+    }
+  }
+  return { hasClass, weekNo:wk, sch };
+}
+function fmtRemain(ms){
+  if(ms < 0) ms = 0;
+  const mins = Math.floor(ms/60000);
+  const h = Math.floor(mins/60), m = mins % 60;
+  if(h > 0) return h + " 小时 " + m + " 分";
+  return m + " 分钟";
+}
+function renderTopbar(){
+  const el = document.getElementById("topbar");
+  let html = "";
+
+  // 课程行
+  const nc = nextClassToday();
+  if(nc.noWeek){
+    html += '<div class="tb-line"><span class="tb-label">📚 课程</span><span class="tb-sub">在「课程表」页设置学期第一周周一，即可自动匹配本周课表并提醒上课</span></div>';
+  } else if(nc.noMatch){
+    html += '<div class="tb-line"><span class="tb-label">📚 课程</span><span class="tb-sub">第 ' + nc.weekNo + ' 周暂无匹配的课表方案，可到「课程表」页调整</span></div>';
+  } else if(nc.entry){
+    const remain = nc.start - new Date();
+    html += '<div class="tb-line"><span class="tb-label">📚 下一节课</span>'
+      + '<span>' + esc(nc.entry.name) + '</span>'
+      + '<span class="tb-sub">' + PERIODS[nc.p] + ' · ' + data.scheduleMeta.periodTimes[nc.p]
+      + (nc.entry.room ? ' · ' + esc(nc.entry.room) : '') + '</span>'
+      + '<span class="' + (remain <= 30*60000 ? 'tb-urgent' : 'tb-ok') + '">还有 ' + fmtRemain(remain) + '</span></div>';
+  } else if(nc.hasClass){
+    html += '<div class="tb-line"><span class="tb-label">📚 课程</span><span class="tb-ok">今日课程已结束 🎉</span></div>';
+  } else {
+    html += '<div class="tb-line"><span class="tb-label">📚 课程</span><span class="tb-ok">今日无课</span></div>';
+  }
+
+  // 作业行
+  const undone = data.homework.filter(h=>!h.done);
+  if(undone.length){
+    const sorted = [...undone].sort((a,b)=>(a.due||"").localeCompare(b.due||""));
+    const near = sorted[0];
+    const diff = daysBetween(todayStr(), near.due);
+    let urgency = "tb-sub";
+    if(diff < 0) urgency = "tb-urgent";
+    else if(diff <= 1) urgency = "tb-urgent";
+    let dueTxt;
+    if(diff < 0) dueTxt = "已逾期 " + (-diff) + " 天";
+    else if(diff === 0) dueTxt = "今天截止！";
+    else dueTxt = "还剩 " + diff + " 天";
+    html += '<div class="tb-line"><span class="tb-label">📝 作业</span>'
+      + '<span class="tb-urgent">' + undone.length + ' 项未完成</span>'
+      + '<span class="tb-sub">最近截止：' + esc(near.course) + ' · ' + esc(near.content) + '（' + near.due + '）</span>'
+      + '<span class="' + urgency + '">' + dueTxt + '</span></div>';
+  } else {
+    html += '<div class="tb-line"><span class="tb-label">📝 作业</span><span class="tb-ok">全部完成，无欠账 ✅</span></div>';
+  }
+
+  // 今日任务行
+  const dailies = data.tasks.filter(t=>t.type==="daily");
+  if(dailies.length){
+    const doneCnt = dailies.filter(t=>t.lastDone === todayStr()).length;
+    html += '<div class="tb-line"><span class="tb-label">✅ 今日任务</span>'
+      + '<span class="' + (doneCnt === dailies.length ? 'tb-ok' : '') + '">' + doneCnt + ' / ' + dailies.length + ' 已完成</span>'
+      + '<span class="tb-sub">详情见「考公规划」</span></div>';
+  } else {
+    html += '<div class="tb-line"><span class="tb-label">✅ 今日任务</span><span class="tb-sub">还没有每日任务，去「考公规划」添加吧</span></div>';
+  }
+
+  el.innerHTML = html;
+}
+
+// ================= 考公规划（每日 / 每周 / 每月 三张卡片） =================
+const TASK_TYPES = [
+  { key:"daily", label:"每日任务", hint:"每天完成，次日自动重置", cycle:()=>todayStr() },
+  { key:"week",  label:"本周任务", hint:"本周完成，下周一自动重置", cycle:()=>weekKeyStr() },
+  { key:"month", label:"本月任务", hint:"本月完成，每月 1 日自动重置", cycle:()=>monthKeyStr() }
+];
+document.getElementById("examDate").addEventListener("change", e=>{
+  data.examDate = e.target.value; saveData(); renderExam();
+});
+function addTaskTyped(type){
+  const subject = document.getElementById("taskSubject_" + type).value.trim();
+  const content = document.getElementById("taskContent_" + type).value.trim();
+  if(!content){ toast("请填写任务内容"); return; }
+  data.tasks.push({ id:uid(), subject: subject || "综合", content, type, lastDone:"", streak:0 });
+  document.getElementById("taskSubject_" + type).value = "";
+  document.getElementById("taskContent_" + type).value = "";
+  saveData(); renderExam(); renderTopbar();
+}
+function toggleTaskWithStreak(id){
+  const t = data.tasks.find(t=>t.id===id);
+  if(!t) return;
+  const def = TASK_TYPES.find(x=>x.key===t.type);
+  const key = def.cycle();
+  if(t.lastDone === key){
+    t.lastDone = "";
+    if(t.type === "daily"){
+      t.streak = Math.max(0, (t.streak||0) - 1);
+    }
+  } else {
+    if(t.type === "daily"){
+      const yesterday = addDaysStr(todayStr(), -1);
+      t.streak = (t.lastDone === yesterday) ? (t.streak||0) + 1 : 1;
+    }
+    t.lastDone = key;
+  }
+  saveData(); renderExam(); renderTopbar();
+}
+function deleteTask(id){
+  data.tasks = data.tasks.filter(t=>t.id!==id); saveData(); renderExam(); renderTopbar();
+}
+function updateCheckinLog(){
+  const key = todayStr();
+  const list = data.tasks.filter(t=>t.type==="daily");
+  const done = list.filter(t=>t.lastDone===key).length;
+  data.checkinLog = data.checkinLog || {};
+  const prev = data.checkinLog[key];
+  data.checkinLog[key] = { done, total: list.length };
+  if(!prev || prev.done !== done || prev.total !== list.length) saveData();
+}
+function renderExam(){
+  updateCheckinLog();
+  document.getElementById("examDate").value = data.examDate || "";
+  const cd = document.getElementById("examCountdown");
+  if(data.examDate){
+    const diff = daysBetween(todayStr(), data.examDate);
+    cd.textContent = diff >= 0 ? diff + " 天" : "已过";
+  } else { cd.textContent = "--"; }
+
+  TASK_TYPES.forEach(def=>{
+    const list = data.tasks.filter(t=>t.type===def.key);
+    const key = def.cycle();
+    const done = list.filter(t=>t.lastDone===key).length;
+
+    // 顶部进度统计
+    document.getElementById(def.key + "Progress").textContent =
+      list.length ? Math.round(done/list.length*100)+"%" : "0%";
+
+    // 卡片头部计数
+    document.getElementById("taskCnt_" + def.key).textContent = done + " / " + list.length + " 已完成";
+
+    // 卡片列表
+    const box = document.getElementById("taskList_" + def.key);
+    if(!list.length){
+      box.innerHTML = '<div class="empty">还没有' + def.label.slice(0,2) + '任务，在上方添加</div>';
+      return;
+    }
+    box.innerHTML = list.map(t=>{
+      const isDone = t.lastDone === key;
+      let streakTxt = "";
+      if(t.type === "daily" && t.streak > 0){
+        const cont = (t.lastDone === todayStr()) || (t.lastDone === addDaysStr(todayStr(),-1));
+        if(cont) streakTxt = '<span class="tag gold">连 ' + t.streak + ' 天</span>';
+      }
+      return '<div class="list-item">'
+        + '<input type="checkbox" ' + (isDone?"checked":"") + ' onchange="toggleTaskWithStreak(\'' + t.id + '\')">'
+        + '<span class="tag">' + esc(t.subject) + '</span>'
+        + '<span class="flex1 ' + (isDone?'done':'') + '">' + esc(t.content) + '</span>'
+        + streakTxt
+        + '<button class="danger" onclick="deleteTask(\'' + t.id + '\')">删除</button>'
+        + '</div>';
+    }).join("");
+  });
+}
+
+// ================= 考公规划：考纲总览（科目 / 模块打卡，不随周期重置） =================
+function sm(name){ return { id: uid(), name, done:false }; }
+function defaultSyllabus(){
+  return [
+    { id:"xingce", name:"行测（行政职业能力测验）", modules:[
+      sm("常识判断"), sm("言语理解与表达"), sm("数量关系"),
+      sm("图形推理"), sm("定义判断"), sm("类比推理"), sm("逻辑判断"),
+      sm("资料分析")
+    ]},
+    { id:"shenlun", name:"申论", modules:[
+      sm("归纳概括"), sm("综合分析"), sm("提出对策"), sm("贯彻执行"), sm("申发论述（大作文）")
+    ]},
+    { id:"interview", name:"面试", modules:[
+      sm("结构化面试"), sm("无领导小组讨论"), sm("热点积累与答题技巧"), sm("模拟演练")
+    ]}
+  ];
+}
+function resetSyllabus(){
+  if(!confirm("确定要恢复默认考纲吗？自定义添加的模块和已勾选的完成状态都会被清空。")) return;
+  data.examSyllabus = defaultSyllabus();
+  saveData(); renderSyllabus();
+  toast("已恢复默认考纲");
+}
+function toggleSyllabusModule(subId, modId){
+  const sub = data.examSyllabus.find(s=>s.id===subId);
+  if(!sub) return;
+  const mod = sub.modules.find(m=>m.id===modId);
+  if(!mod) return;
+  mod.done = !mod.done;
+  saveData(); renderSyllabus();
+}
+function addSyllabusModule(subId){
+  const input = document.getElementById("sylAdd_" + subId);
+  const name = (input.value || "").trim();
+  if(!name){ toast("请输入模块名称"); return; }
+  const sub = data.examSyllabus.find(s=>s.id===subId);
+  if(!sub) return;
+  sub.modules.push({ id:uid(), name, done:false, custom:true });
+  input.value = "";
+  saveData(); renderSyllabus();
+}
+function deleteSyllabusModule(subId, modId){
+  const sub = data.examSyllabus.find(s=>s.id===subId);
+  if(!sub) return;
+  sub.modules = sub.modules.filter(m=>m.id!==modId);
+  saveData(); renderSyllabus();
+}
+function switchExamView(view){
+  document.getElementById("examViewBtn_cycle").classList.toggle("active", view==="cycle");
+  document.getElementById("examViewBtn_syllabus").classList.toggle("active", view==="syllabus");
+  document.getElementById("examView_cycle").classList.toggle("hidden", view!=="cycle");
+  document.getElementById("examView_syllabus").classList.toggle("hidden", view!=="syllabus");
+  document.getElementById("examDesc").textContent = view === "cycle"
+    ? "任务按「每日 / 本周 / 本月」三个周期分门别类，到期自动重置；连续打卡自动累计"
+    : "按科目梳理考公要考的全部内容，完成一个模块就勾选一个，长期追踪不重置";
+}
+function checkSvg(){
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+}
+function renderSyllabus(){
+  const subjects = data.examSyllabus || [];
+  let totalAll = 0, doneAll = 0;
+  const box = document.getElementById("syllabusSubjects");
+  box.innerHTML = subjects.map(sub=>{
+    const total = sub.modules.length;
+    const done = sub.modules.filter(m=>m.done).length;
+    totalAll += total; doneAll += done;
+    const pct = total ? Math.round(done/total*100) : 0;
+    const rows = sub.modules.map(m=>{
+      return '<div class="syl-module ' + (m.done?"done":"") + '" onclick="toggleSyllabusModule(\'' + sub.id + '\',\'' + m.id + '\')">'
+        + '<span class="syl-check">' + checkSvg() + '</span>'
+        + '<span class="syl-name">' + esc(m.name) + '</span>'
+        + (m.custom ? '<span class="syl-custom-tag">自定义</span>' : '')
+        + '<button class="danger" style="margin-left:auto;" onclick="event.stopPropagation(); deleteSyllabusModule(\'' + sub.id + '\',\'' + m.id + '\')">删除</button>'
+        + '</div>';
+    }).join("");
+    return '<div class="card syl-subject">'
+      + '<div class="syl-subject-head">'
+        + '<span class="syl-subject-name">' + esc(sub.name) + '</span>'
+        + '<span class="muted">' + done + ' / ' + total + '</span>'
+      + '</div>'
+      + '<div class="syl-progress-bar"><div class="syl-progress-fill" style="width:' + pct + '%;"></div></div>'
+      + '<div style="margin-top:12px;">' + (rows || '<div class="empty">该科目暂无模块</div>') + '</div>'
+      + '<div class="row add-row" style="margin-top:12px;">'
+        + '<input type="text" id="sylAdd_' + sub.id + '" placeholder="添加自定义模块" style="flex:1; min-width:96px;">'
+        + '<button class="small" onclick="addSyllabusModule(\'' + sub.id + '\')">添加</button>'
+      + '</div>'
+    + '</div>';
+  }).join("");
+  const totalPct = totalAll ? Math.round(doneAll/totalAll*100) : 0;
+  document.getElementById("sylTotalFill").style.width = totalPct + "%";
+  document.getElementById("sylTotalPct").textContent = totalPct + "%";
+  document.getElementById("sylTotalCnt").textContent = doneAll + " / " + totalAll;
+}
+
+// ================= 生活习惯（完整历史记录） =================
+const KINDS = [
+  { key:"shower",  label:"洗澡" },
+  { key:"hair",    label:"洗头" },
+  { key:"laundry", label:"洗衣" }
+];
+const SEASON_RULES = {
+  summer:      { shower:1, hair:1, laundry:3,  hint:"炎热季：建议每天洗澡/洗头，衣物每 3 天左右清洗一次。" },
+  spring_fall: { shower:2, hair:2, laundry:4,  hint:"温和季：建议每 1–2 天洗澡/洗头，衣物每 4 天左右清洗一次。" },
+  winter:      { shower:3, hair:3, laundry:10, hint:"寒冷季：建议每 2–3 天洗澡/洗头，厚外套/毛衣每 10 天左右清洗一次。" }
+};
+let recFilter = "all";
+document.getElementById("recDate").value = todayStr();
+function saveSeason(){
+  data.habits.season = document.getElementById("seasonSelect").value;
+  saveData(); renderHabit();
+}
+function quickRecord(kind){
+  data.habits.records.push({ id:uid(), date: todayStr(), kind });
+  saveData(); renderHabit();
+  const k = KINDS.find(x=>x.key===kind);
+  toast("已记录：今天" + (k?k.label:kind));
+}
+function addRecord(){
+  const kind = document.getElementById("recKind").value;
+  const date = document.getElementById("recDate").value;
+  if(!date){ toast("请选择日期"); return; }
+  data.habits.records.push({ id:uid(), date, kind });
+  saveData(); renderHabit();
+  const k = KINDS.find(x=>x.key===kind);
+  toast("已补记：" + date + " " + (k?k.label:kind));
+}
+function deleteRecord(id){
+  data.habits.records = data.habits.records.filter(r=>r.id!==id);
+  saveData(); renderHabit();
+}
+function setRecFilter(f){
+  recFilter = f;
+  renderHabit();
+}
+function lastRecordOf(kind){
+  const list = data.habits.records.filter(r=>r.kind===kind);
+  if(!list.length) return null;
+  return list.reduce((a,b)=> a.date >= b.date ? a : b);
+}
+function addWater(){
+  const t = todayStr();
+  data.habits.water[t] = (data.habits.water[t]||0) + 1;
+  saveData(); renderHabit();
+}
+function resetWater(){
+  data.habits.water[todayStr()] = 0;
+  saveData(); renderHabit();
+}
+function renderHabit(){
+  document.getElementById("seasonSelect").value = data.habits.season;
+  const rule = SEASON_RULES[data.habits.season];
+  document.getElementById("seasonHint").textContent = rule.hint;
+
+  KINDS.forEach(k=>{
+    const last = lastRecordOf(k.key);
+    const interval = rule[k.key];
+    const lastId = "st" + k.key.charAt(0).toUpperCase() + k.key.slice(1);
+    const lastEl = document.getElementById(lastId + "Last");
+    const nextEl = document.getElementById(lastId + "Next");
+    const statusEl = document.getElementById(lastId + "Status");
+    const statusBox = document.getElementById(lastId + "StatusBox");
+    if(!last){
+      lastEl.textContent = "--";
+      nextEl.textContent = "--";
+      statusEl.textContent = "未记录";
+      statusBox.classList.add("due");
+      return;
+    }
+    lastEl.textContent = last.date;
+    const nextStr = addDaysStr(last.date, interval);
+    nextEl.textContent = nextStr;
+    const diff = daysBetween(todayStr(), nextStr);
+    if(diff <= 0){ statusEl.textContent = "该安排啦"; statusBox.classList.add("due"); }
+    else { statusEl.textContent = "还有 " + diff + " 天"; statusBox.classList.remove("due"); }
+  });
+
+  document.getElementById("waterCount").textContent = data.habits.water[todayStr()] || 0;
+
+  // 过滤按钮高亮
+  const map = { all:"recFilterAll", shower:"recFilterShower", hair:"recFilterHair", laundry:"recFilterLaundry" };
+  Object.keys(map).forEach(f=>{
+    const btn = document.getElementById(map[f]);
+    if(btn){
+      btn.style.background = (f===recFilter) ? "var(--gold-soft)" : "";
+      btn.style.borderColor = (f===recFilter) ? "var(--gold)" : "";
+      btn.style.color = (f===recFilter) ? "var(--gold)" : "";
+    }
+  });
+
+  // 历史列表
+  const list = document.getElementById("recList");
+  let records = [...data.habits.records];
+  if(recFilter !== "all") records = records.filter(r=>r.kind===recFilter);
+  if(!records.length){
+    list.innerHTML = '<div class="empty">' + (data.habits.records.length ? "该分类暂无记录" : "还没有记录，点「记一笔」开始吧") + '</div>';
+    return;
+  }
+  records.sort((a,b)=> b.date.localeCompare(a.date));
+  list.innerHTML = records.map(r=>{
+    const k = KINDS.find(x=>x.key===r.kind);
+    const diff = daysBetween(r.date, todayStr());
+    let rel = "";
+    if(diff === 0) rel = "今天";
+    else if(diff === 1) rel = "昨天";
+    else if(diff > 1) rel = diff + " 天前";
+    else rel = "未来";
+    return '<div class="list-item">'
+      + '<span class="tag ' + (r.kind==="shower" ? "" : r.kind==="hair" ? "warn" : "plain") + '">' + (k?k.label:r.kind) + '</span>'
+      + '<span class="flex1">' + r.date + '</span>'
+      + '<span class="muted">' + rel + '</span>'
+      + '<button class="danger" onclick="deleteRecord(\'' + r.id + '\')">删除</button>'
+      + '</div>';
+  }).join("");
+}
+
+// ================= 收支记录 =================
+document.getElementById("finDate").value = todayStr();
+function addFinance(){
+  const amount = parseFloat(document.getElementById("finAmount").value);
+  if(!amount || amount <= 0){ toast("请填写有效金额"); return; }
+  data.finance.push({
+    id: uid(),
+    type: document.getElementById("finType").value,
+    amount,
+    category: document.getElementById("finCategory").value,
+    note: document.getElementById("finNote").value.trim(),
+    date: document.getElementById("finDate").value || todayStr()
+  });
+  document.getElementById("finAmount").value = "";
+  document.getElementById("finNote").value = "";
+  saveData(); renderFinance();
+}
+function deleteFinance(id){
+  data.finance = data.finance.filter(f=>f.id!==id); saveData(); renderFinance();
+}
+function renderFinance(){
+  const thisMonth = todayStr().slice(0,7);
+  let income=0, expense=0;
+  data.finance.forEach(f=>{
+    if(f.date && f.date.slice(0,7)===thisMonth){
+      if(f.type==='income') income += f.amount; else expense += f.amount;
+    }
+  });
+  document.getElementById("finIncome").textContent = "¥" + income.toFixed(0);
+  document.getElementById("finExpense").textContent = "¥" + expense.toFixed(0);
+  document.getElementById("finBalance").textContent = "¥" + (income-expense).toFixed(0);
+
+  const list = document.getElementById("finList");
+  if(!data.finance.length){ list.innerHTML = '<div class="empty">还没有记录，添加第一笔收支吧</div>'; return; }
+  const sorted = [...data.finance].sort((a,b)=> (b.date||"").localeCompare(a.date||""));
+  list.innerHTML = sorted.map(f=>`
+    <div class="list-item">
+      <span class="tag ${f.type==='expense'?'urgent':''}" style="${f.type==='income'?'background:var(--sage-soft);color:var(--sage);':''}">${f.type==='income'?'收入':'支出'}</span>
+      <span class="flex1">${esc(f.category)} ${f.note?('· '+esc(f.note)):''}</span>
+      <span class="muted">${f.date}</span>
+      <span style="font-weight:600;">${f.type==='income'?'+':'-'}¥${f.amount}</span>
+      <button class="danger" onclick="deleteFinance('${f.id}')">删除</button>
+    </div>
+  `).join("");
+}
+
+// ================= 课程表（多方案 + 课程级周次） =================
+const DAYS = ["一","二","三","四","五","六","日"];
+const PERIODS = ["第1-2节","第3-4节","第5-6节","第7-8节","晚上"];
+let curSchId = null;
+let onlyThisWeek = false;
+let schEditing = false;
+
+function schList(){ return data.scheduleOrder.map(id=>data.schedules[id]).filter(Boolean); }
+function modeLabel(s){
+  if(s.mode === "range") return "第 " + s.from + " – " + s.to + " 周";
+  if(s.mode === "odd") return "全部单周";
+  if(s.mode === "even") return "全部双周";
+  return "";
+}
+function toggleSchEdit(){
+  schEditing = !schEditing;
+  document.getElementById("schEditPanel").classList.toggle("hidden", !schEditing);
+  renderSchedulePage();
+  if(!schEditing) toast("已退出编辑模式");
+}
+function saveSemesterStart(){
+  data.scheduleMeta.semesterStart = document.getElementById("semesterStart").value;
+  saveData(); renderSchedulePage(); renderTopbar();
+}
+function saveNotifyAhead(){
+  const v = parseInt(document.getElementById("notifyAhead").value, 10);
+  if(!isNaN(v) && v >= 1 && v <= 300) data.scheduleMeta.notifyAhead = v;
+  saveData();
+}
+function savePeriodTime(idx, val){
+  if(val) data.scheduleMeta.periodTimes[idx] = val;
+  saveData(); renderTopbar();
+}
+function toggleClassNotify(){
+  if(data.scheduleMeta.classNotifyOn){
+    data.scheduleMeta.classNotifyOn = false;
+    saveData(); renderSchedulePage();
+    toast("已关闭上课提醒");
+  } else {
+    requestNotifyPermission();
+    data.scheduleMeta.classNotifyOn = true;
+    saveData(); renderSchedulePage();
+    toast("已开启上课提醒：课前 " + data.scheduleMeta.notifyAhead + " 分钟通知");
+  }
+}
+function toggleOnlyThisWeek(){
+  onlyThisWeek = !onlyThisWeek;
+  renderSchedulePage();
+}
+function renderSchedulePage(){
+  const wk = getWeekNo();
+
+  // ---- 编辑面板：学期与提醒 ----
+  document.getElementById("semesterStart").value = data.scheduleMeta.semesterStart || "";
+  document.getElementById("weekInfo").textContent = wk
+    ? (wk > 0 ? "今天是第 " + wk + " 周" : "尚未到开学日期")
+    : "设置后自动计算周次并匹配本周课表";
+  document.getElementById("notifyAhead").value = data.scheduleMeta.notifyAhead;
+  const nbtn = document.getElementById("classNotifyBtn");
+  if(data.scheduleMeta.classNotifyOn){ nbtn.textContent = "✓ 提醒已开启（点击关闭）"; nbtn.classList.add("ghost"); }
+  else { nbtn.textContent = "开启上课提醒"; nbtn.classList.remove("ghost"); }
+  renderNotifyPermHint();
+
+  // 节次时间
+  const ptRow = document.getElementById("periodTimesRow");
+  ptRow.innerHTML = PERIODS.map((p,i)=>
+    '<span class="pt">' + p + ' <input type="time" value="' + (data.scheduleMeta.periodTimes[i]||"") + '" onchange="savePeriodTime(' + i + ', this.value)"></span>'
+  ).join("");
+
+  // ---- 顶部按钮 ----
+  const owb = document.getElementById("onlyWeekBtn");
+  if(onlyThisWeek){ owb.classList.add("active"); owb.textContent = "✓ 仅看本周"; }
+  else { owb.classList.remove("active"); owb.textContent = "仅看本周"; }
+  document.getElementById("schEditBtn").textContent = schEditing ? "✓ 完成编辑" : "✏️ 编辑";
+
+  // ---- 当前查看方案 ----
+  if(!curSchId || !data.schedules[curSchId]){
+    const m0 = matchSchedule(wk && wk > 0 ? wk : null);
+    curSchId = (m0 && m0.id) || (schList()[0] && schList()[0].id) || null;
+  }
+  if(!curSchId){
+    const sid = uid();
+    data.schedules[sid] = { id:sid, name:"课表一", mode:"range", from:1, to:25, grid:{} };
+    data.scheduleOrder.push(sid);
+    curSchId = sid;
+    saveData();
+  }
+
+  // 方案标签（编辑面板内）
+  const matched = matchSchedule(wk && wk > 0 ? wk : null);
+  document.getElementById("schTabs").innerHTML = schList().map(s=>
+    '<div class="sch-tab ' + (s.id===curSchId?'active':'') + '" onclick="viewSch(\'' + s.id + '\')">'
+    + esc(s.name)
+    + (matched && matched.id===s.id ? '<span class="wk">●本周</span>' : '')
+    + '</div>'
+  ).join("") + '<div class="sch-add" onclick="openNewSchModal()">＋ 新建</div>';
+
+  const cur = data.schedules[curSchId];
+  document.getElementById("curSchDesc").textContent = "当前编辑：" + cur.name + "（" + modeLabel(cur) + "）"
+    + (onlyThisWeek ? " · 网格仅显示本周实际上的课" : "");
+  document.getElementById("delSchBtn").style.display = schList().length > 1 ? "" : "none";
+
+  // ---- 页面副标题 ----
+  const sub = document.getElementById("schSubTitle");
+  if(wk && wk > 0){
+    sub.textContent = "第 " + wk + " 周 · " + cur.name + (matched && matched.id===curSchId ? "（本周课表）" : "");
+  } else if(wk === 0){
+    sub.textContent = "尚未开学 · " + cur.name;
+  } else {
+    sub.textContent = "未设置学期起始（点「编辑」设置）· " + cur.name;
+  }
+
+  // ---- 网格提示与编辑态 ----
+  document.getElementById("schGridHint").textContent = schEditing
+    ? "编辑模式：点击格子修改课程，可设置该课单独的上课周次（如只上第 3–6 周）；课程名留空保存即清除。"
+    : "点击格子可快速编辑课程；学期、方案、提醒等设置点右上角「编辑」。";
+  document.getElementById("scheduleGrid").classList.toggle("editing", schEditing);
+
+  renderScheduleGrid();
+}
+function viewSch(id){
+  curSchId = id;
+  renderSchedulePage();
+}
+// ---- 课表专属备份：只导出/导入 schedules + scheduleOrder + scheduleMeta ----
+function exportSchedule(){
+  try{
+    const payload = {
+      type: "workbench-schedule-backup",
+      version: 1,
+      schedules: data.schedules,
+      scheduleOrder: data.scheduleOrder,
+      scheduleMeta: data.scheduleMeta
+    };
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "课程表备份_" + todayStr() + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    toast("已导出课程表");
+  }catch(e){
+    toast("导出失败，请重试");
+  }
+}
+function triggerScheduleImport(){
+  document.getElementById("scheduleImportInput").click();
+}
+function handleScheduleImportFile(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    let obj;
+    try{ obj = JSON.parse(e.target.result); }
+    catch(err){ toast("文件格式不对，无法导入"); input.value = ""; return; }
+    if(!obj || typeof obj !== "object" || !obj.schedules){
+      toast("这不是课程表备份文件"); input.value = ""; return;
+    }
+    if(!confirm("导入将覆盖当前所有课表方案和学期设置（不影响作业、任务、收支等其他数据）。确定要导入吗？")){
+      input.value = ""; return;
+    }
+    try{
+      data.schedules = obj.schedules || {};
+      data.scheduleOrder = (obj.scheduleOrder && obj.scheduleOrder.length) ? obj.scheduleOrder : Object.keys(data.schedules);
+      if(obj.scheduleMeta){
+        data.scheduleMeta = Object.assign(
+          { semesterStart:"", periodTimes: DEFAULT_PERIOD_TIMES.slice(), notifyAhead:30, classNotifyOn:false },
+          obj.scheduleMeta
+        );
+      }
+      normalizeSchedules(data);
+      curSchId = null;
+      saveData();
+      toast("课程表导入成功");
+      renderSchedulePage();
+      try{ renderTopbar(); }catch(e){}
+      try{ renderDashboard(); }catch(e){}
+    }catch(err){
+      toast("导入失败：" + (err && err.message ? err.message : "未知错误"));
+    }
+    input.value = "";
+  };
+  reader.onerror = function(){ toast("读取文件失败，请重试"); input.value = ""; };
+  reader.readAsText(file, "utf-8");
+}
+function renderScheduleGrid(){
+  const grid = document.getElementById("scheduleGrid");
+  if(!curSchId || !data.schedules[curSchId]) return;
+  const sch = data.schedules[curSchId];
+  const todayCol = (new Date().getDay()+6)%7;
+  const wk = getWeekNo();
+  const wkEff = (wk && wk > 0) ? wk : null;
+  let html = '<div class="cell head"></div>';
+  DAYS.forEach((d,i)=> html += '<div class="cell head ' + (i===todayCol?'today-col':'') + '">周' + d + (i===todayCol?'<div style="font-size:9px;color:var(--stamp)">今天</div>':'') + '</div>');
+  PERIODS.forEach((p, pIdx)=>{
+    html += '<div class="cell period-label">' + p + '<div style="font-size:10px">' + (data.scheduleMeta.periodTimes[pIdx]||"") + '</div></div>';
+    DAYS.forEach((d, dIdx)=>{
+      const key = dIdx + "-" + pIdx;
+      const cell = sch.grid[key];
+      let cls = "cell";
+      let inner = "";
+      if(Array.isArray(cell) && cell.length){
+        // 每门课独立判断本周是否上；「仅看本周」时只保留本周上的课
+        const courses = cell.filter(c=>c && c.name)
+          .map(c=>({ c:c, active:courseOnThisWeek(c, wkEff) }));
+        const show = onlyThisWeek ? courses.filter(x=>x.active) : courses;
+        inner = show.map((x, i)=>
+          (i>0 ? '<div style="border-top:1px dashed var(--card-line); margin:5px 0;"></div>' : '')
+          + '<div class="ccourse' + (x.active ? '' : ' inactive') + '">'
+          + '<div class="cname">' + esc(x.c.name) + '</div>'
+          + (x.c.room ? '<div class="croom">' + esc(x.c.room) + '</div>' : '')
+          + (weeksLabel(x.c.weeks) ? '<div class="cweek">' + weeksLabel(x.c.weeks) + '</div>' : '')
+          + '</div>'
+        ).join("");
+      }
+      if(dIdx===todayCol) cls += " today-col";
+      html += '<div class="' + cls + '" onclick="editCell(\'' + key + '\')">' + inner + '</div>';
+    });
+  });
+  grid.innerHTML = html;
+}
+function editCell(key){
+  if(!curSchId) return;
+  const sch = data.schedules[curSchId];
+  const parts = key.split("-");
+  const cell = Array.isArray(sch.grid[key]) ? JSON.parse(JSON.stringify(sch.grid[key])) : [];
+  openModal("编辑课程 · 周" + DAYS[+parts[0]] + " " + PERIODS[+parts[1]],
+    '<div id="mCourseRows"></div>'
+    + '<div class="mrow" style="margin-bottom:6px;">'
+    +   '<button class="ghost small" onclick="addCourseRow()">＋ 添加一门课（同一时间段可排多门课）</button>'
+    + '</div>'
+    + '<div class="mhint" style="margin:0 0 4px;">上课周次支持组合写法：如「1-4,6-11」「3,5,7-9」；留空 = 整个方案期间都上。全部课程名留空保存即清除该格。</div>',
+    "保存",
+    ()=>{
+      const rows = document.querySelectorAll("#mCourseRows .course-row");
+      const list = [];
+      rows.forEach(r=>{
+        const name = r.querySelector(".cr-name").value.trim();
+        if(!name) return;
+        list.push({
+          name: name,
+          room: r.querySelector(".cr-room").value.trim(),
+          weeks: r.querySelector(".cr-weeks").value.trim() || null
+        });
+      });
+      if(!list.length) delete sch.grid[key];
+      else sch.grid[key] = list;
+      saveData(); closeModal(); renderScheduleGrid(); renderTopbar();
+    });
+  const box = document.getElementById("mCourseRows");
+  box.innerHTML = "";
+  if(!cell.length) addCourseRow();
+  else cell.forEach(c=>addCourseRow(c));
+}
+function addCourseRow(c){
+  c = c || { name:"", room:"", weeks:"" };
+  const box = document.getElementById("mCourseRows");
+  if(!box) return;
+  const div = document.createElement("div");
+  div.className = "course-row";
+  div.innerHTML =
+    '<input class="cr-name" placeholder="课程名" value="' + esc(c.name) + '">'
+    + '<input class="cr-room" placeholder="教室（可选）" value="' + esc(c.room||"") + '">'
+    + '<input class="cr-weeks" placeholder="周次，如 1-4,6-11" value="' + esc(c.weeks||"") + '">'
+    + '<button class="danger" onclick="this.parentNode.remove()">删</button>';
+  box.appendChild(div);
+}
+function openNewSchModal(){
+  const options = '<option value="">不复制（空白课表）</option>' + schList().map(s=>'<option value="' + s.id + '">复制「' + esc(s.name) + '」的内容</option>').join("");
+  openModal("新建课表方案",
+    '<div class="mrow"><label>方案名称</label><input id="mSchName" placeholder="如：单周课表 / 第9-16周"></div>'
+    + '<div class="mrow"><label>适用范围</label><select id="mSchMode" onchange="document.getElementById(\'mSchRange\').style.display = (this.value===\'range\'?\'flex\':\'none\')">'
+    +   '<option value="range">指定周次范围</option><option value="odd">全部单周（第1,3,5…周）</option><option value="even">全部双周（第2,4,6…周）</option></select></div>'
+    + '<div class="mrow" id="mSchRange"><label style="width:88px;"></label>'
+    +   '<span class="muted">第</span><input type="number" id="mSchFrom" min="1" value="1" style="width:70px;">'
+    +   '<span class="muted">–</span><input type="number" id="mSchTo" min="1" value="16" style="width:70px;"><span class="muted">周</span></div>'
+    + '<div class="mrow"><label>初始内容</label><select id="mSchCopy">' + options + '</select></div>',
+    "创建",
+    ()=>{
+      const name = document.getElementById("mSchName").value.trim() || "未命名课表";
+      const mode = document.getElementById("mSchMode").value;
+      let from = 1, to = 25;
+      if(mode === "range"){
+        from = parseInt(document.getElementById("mSchFrom").value, 10) || 1;
+        to = parseInt(document.getElementById("mSchTo").value, 10) || from;
+        if(to < from) to = from;
+      }
+      const copyFrom = document.getElementById("mSchCopy").value;
+      const grid = copyFrom ? JSON.parse(JSON.stringify(data.schedules[copyFrom].grid||{})) : {};
+      const sid = uid();
+      data.schedules[sid] = { id:sid, name, mode, from, to, grid };
+      data.scheduleOrder.push(sid);
+      curSchId = sid;
+      saveData(); closeModal(); renderSchedulePage(); renderTopbar();
+      toast("已创建方案：" + name);
+    });
+}
+function askDeleteSch(){
+  if(!curSchId || schList().length <= 1) return;
+  const s = data.schedules[curSchId];
+  openModal("删除方案",
+    '<p style="font-size:13.5px; line-height:1.7;">确定删除「<b>' + esc(s.name) + '</b>」吗？<br>该方案下的所有课程数据将一并删除，无法恢复。</p>',
+    "删除",
+    ()=>{
+      delete data.schedules[curSchId];
+      data.scheduleOrder = data.scheduleOrder.filter(id=>id!==curSchId);
+      curSchId = null;
+      saveData(); closeModal(); renderSchedulePage(); renderTopbar();
+      toast("方案已删除");
+    });
+}
+
+// 上课提醒检查（每 30 秒 + 数据变化时）
+function checkClassAlerts(){
+  if(!data.scheduleMeta.classNotifyOn) return;
+  const wk = getWeekNo();
+  if(!wk || wk <= 0) return;
+  const sch = matchSchedule(wk);
+  if(!sch) return;
+  const dIdx = (new Date().getDay()+6)%7;
+  const now = new Date();
+  const ahead = (data.scheduleMeta.notifyAhead || 30) * 60000;
+  if(data.notified.date !== todayStr()){ data.notified = { date: todayStr(), keys: [] }; }
+  PERIODS.forEach((p, pi)=>{
+    const t = data.scheduleMeta.periodTimes[pi];
+    if(!t) return;
+    const entry = activeCourseInCell(sch.grid[dIdx + "-" + pi], wk);
+    if(!entry) return;
+    const [h, m] = t.split(":").map(Number);
+    const start = new Date(); start.setHours(h, m, 0, 0);
+    const delta = start - now;
+    if(delta > 0 && delta <= ahead){
+      const key = todayStr() + "-" + dIdx + "-" + pi;
+      if(data.notified.keys.indexOf(key) >= 0) return;
+      data.notified.keys.push(key);
+      saveData();
+      const mins = Math.max(1, Math.round(delta/60000));
+      notify("上课提醒", mins + " 分钟后上课：" + entry.name + " · " + p + (entry.room ? " · " + entry.room : ""));
+      flashTitle("⏰ " + mins + "分钟后上课");
+    }
+  });
+}
+
+// ================= 作业追踪（每日提醒） =================
+function addHomework(){
+  const course = document.getElementById("hwCourse").value.trim();
+  const content = document.getElementById("hwContent").value.trim();
+  const due = document.getElementById("hwDue").value;
+  if(!content){ toast("请填写作业内容"); return; }
+  if(!due){ toast("请选择截止日期"); return; }
+  data.homework.push({id:uid(), course: course || "未分类", content, due, done:false});
+  document.getElementById("hwCourse").value = "";
+  document.getElementById("hwContent").value = "";
+  document.getElementById("hwDue").value = "";
+  saveData(); renderHomework(); renderTopbar();
+}
+function toggleHw(id){
+  const h = data.homework.find(h=>h.id===id);
+  if(h){ h.done = !h.done; saveData(); renderHomework(); renderTopbar(); }
+}
+function deleteHw(id){
+  data.homework = data.homework.filter(h=>h.id!==id); saveData(); renderHomework(); renderTopbar();
+}
+function clearDoneHw(){
+  const cnt = data.homework.filter(h=>h.done).length;
+  if(!cnt){ toast("没有已完成的作业"); return; }
+  data.homework = data.homework.filter(h=>!h.done);
+  saveData(); renderHomework(); renderTopbar();
+  toast("已清除 " + cnt + " 项已完成作业");
+}
+function renderHomework(){
+  const undone = data.homework.filter(h=>!h.done);
+  const todayDue = undone.filter(h=>h.due === todayStr()).length;
+  document.getElementById("hwPending").textContent = undone.length;
+  document.getElementById("hwTodayDue").textContent = todayDue;
+  const nearest = document.getElementById("hwNearest");
+  if(undone.length){
+    const sorted = [...undone].sort((a,b)=>(a.due||"").localeCompare(b.due||""));
+    nearest.textContent = sorted[0].due;
+  } else { nearest.textContent = "--"; }
+
+  const list = document.getElementById("hwList");
+  if(!data.homework.length){ list.innerHTML = '<div class="empty">还没有作业，添加一项吧</div>'; return; }
+  const sorted = [...data.homework].sort((a,b)=>{
+    if(a.done !== b.done) return a.done ? 1 : -1;
+    return (a.due||"").localeCompare(b.due||"");
+  });
+  list.innerHTML = sorted.map(h=>{
+    const diff = daysBetween(todayStr(), h.due);
+    let tagClass = "", tagText = "";
+    if(h.done){ tagText = "已完成"; tagClass=""; }
+    else if(diff < 0){ tagClass="urgent"; tagText = "已逾期"; }
+    else if(diff === 0){ tagClass="urgent"; tagText = "今天截止"; }
+    else if(diff <= 2){ tagClass="warn"; tagText = "还剩 "+diff+" 天"; }
+    else { tagText = "还剩 "+diff+" 天"; }
+    return `
+    <div class="list-item">
+      <input type="checkbox" ${h.done?"checked":""} onchange="toggleHw('${h.id}')">
+      <span class="tag ${tagClass}">${tagText}</span>
+      <span class="flex1 ${h.done?'done':''}">【${esc(h.course)}】${esc(h.content)}</span>
+      <span class="muted">${h.due}</span>
+      <button class="danger" onclick="deleteHw('${h.id}')">删除</button>
+    </div>`;
+  }).join("");
+}
+// 每天首次打开时的作业汇总提醒
+function hwDailyNotify(){
+  const undone = data.homework.filter(h=>!h.done);
+  if(!undone.length) return;
+  if(data.lastHwNotifyDay === todayStr()) return;
+  data.lastHwNotifyDay = todayStr();
+  saveData();
+  const sorted = [...undone].sort((a,b)=>(a.due||"").localeCompare(b.due||""));
+  const near = sorted[0];
+  const diff = daysBetween(todayStr(), near.due);
+  let dueTxt = diff < 0 ? "已逾期" : (diff === 0 ? "今天截止" : diff + " 天后截止");
+  notify("今日作业提醒", "还有 " + undone.length + " 项作业未完成；最近：「" + near.course + " · " + near.content + "」" + dueTxt);
+}
+
+// ================= 专注计时 =================
+function focusStat(){
+  return data.focus[todayStr()] || { count: 0, minutes: 0 };
+}
+function addFocus(minutes){
+  const s = data.focus[todayStr()] || { count:0, minutes:0 };
+  s.count += 1;
+  s.minutes += Math.round(minutes);
+  data.focus[todayStr()] = s;
+  saveData(); renderTimerStats();
+}
+function switchTimerMode(mode){
+  if(data.timer.running){ toast("请先暂停或重置当前计时"); return; }
+  data.timer.mode = mode;
+  data.timer.accumMs = 0;
+  data.timer.remainMs = 0;
+  data.timer.preset = 0;
+  saveData();
+  document.getElementById("segFocus").classList.toggle("active", mode==="focus");
+  document.getElementById("segCd").classList.toggle("active", mode==="cd");
+  document.getElementById("cdSetup").classList.toggle("hidden", mode!=="cd");
+  document.getElementById("timerModeText").textContent = mode==="focus" ? "自由专注 · 随时暂停" : "设定时长后开始倒计时";
+  renderTimer();
+}
+function setCdPreset(mins, btn){
+  data.timer.remainMs = mins * 60000;
+  data.timer.preset = mins;
+  data.timer.running = false;
+  data.timer.endTs = 0;
+  saveData();
+  document.querySelectorAll("#cdSetup .pill").forEach(b=>b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  document.getElementById("cdCustom").value = "";
+  renderTimer();
+  toast("已设定 " + mins + " 分钟，点击开始");
+}
+function setCdCustom(){
+  const v = parseFloat(document.getElementById("cdCustom").value);
+  if(!v || v <= 0){ toast("请输入有效分钟数"); return; }
+  setCdPreset(Math.round(v), null);
+}
+function timerToggle(){
+  const t = data.timer;
+  if(t.mode === "focus"){
+    if(!t.running && t.accumMs === 0){
+      t.running = true; t.startTs = Date.now();
+    } else if(t.running){
+      t.running = false; t.accumMs += Date.now() - t.startTs;
+    } else {
+      t.running = true; t.startTs = Date.now();
+    }
+  } else {
+    if(t.running){
+      t.running = false;
+      t.remainMs = Math.max(0, t.endTs - Date.now());
+    } else {
+      if(t.remainMs <= 0){ toast("请先设定倒计时时长"); return; }
+      t.running = true;
+      t.endTs = Date.now() + t.remainMs;
+    }
+  }
+  saveData(); renderTimer();
+}
+function timerReset(){
+  const t = data.timer;
+  if(t.mode === "focus" && (t.running || t.accumMs > 0)){
+    const elapsed = t.accumMs + (t.running ? Date.now() - t.startTs : 0);
+    if(elapsed >= 5*60000){
+      addFocus(elapsed/60000);
+      toast("已记录本次专注 " + Math.round(elapsed/60000) + " 分钟");
+    } else if(elapsed > 0){
+      toast("不足 5 分钟，本次不计入统计");
+    }
+  }
+  t.running = false; t.accumMs = 0; t.remainMs = 0; t.endTs = 0;
+  saveData(); renderTimer();
+}
+function finishCd(){
+  const t = data.timer;
+  t.running = false;
+  t.remainMs = 0;
+  if(t.endTs > 0){
+    addFocus(t.preset || 0);
+    beep(3);
+    notify("倒计时结束", "完成一次 " + (t.preset||"") + " 分钟专注，休息一下吧 ☕");
+    flashTitle("⏰ 时间到！");
+  }
+  t.endTs = 0;
+  saveData(); renderTimer();
+}
+function fmtClock(ms){
+  if(ms < 0) ms = 0;
+  const total = Math.floor(ms/1000);
+  const h = Math.floor(total/3600), m = Math.floor((total%3600)/60), s = total%60;
+  return h > 0 ? (h + ":" + pad(m) + ":" + pad(s)) : (pad(m) + ":" + pad(s));
+}
+function renderTimer(){
+  const t = data.timer;
+  const disp = document.getElementById("timerDisp");
+  const ctrl = document.getElementById("timerCtrl");
+  let ms = 0;
+  if(t.mode === "focus"){
+    ms = t.accumMs + (t.running ? Date.now() - t.startTs : 0);
+  } else {
+    ms = t.running ? Math.max(0, t.endTs - Date.now()) : t.remainMs;
+  }
+  disp.textContent = fmtClock(ms);
+  disp.classList.toggle("running", t.running);
+  const canStart = (t.mode==="cd") ? t.remainMs > 0 || t.running : true;
+  const startLabel = t.running ? "暂停" : "开始";
+  let btns = "";
+  if(canStart || t.mode==="focus") btns += '<button onclick="timerToggle()">' + startLabel + '</button>';
+  btns += '<button class="ghost" onclick="timerReset()">重置' + (t.mode==="focus" ? "并记录" : "") + '</button>';
+  ctrl.innerHTML = btns;
+  if(t.mode === "cd" && t.preset > 0 && !t.running){
+    document.getElementById("timerModeText").textContent = "已设定 " + t.preset + " 分钟 · 待开始";
+  } else if(t.mode === "cd" && t.running){
+    document.getElementById("timerModeText").textContent = "倒计时进行中 · 结束将提醒";
+  }
+}
+function renderTimerStats(){
+  const s = focusStat();
+  document.getElementById("focusCount").textContent = s.count;
+  document.getElementById("focusMinutes").textContent = s.minutes;
+}
+
+// ================= 统计：打卡热力图 + 专注趋势 =================
+function heatColor(log){
+  if(!log || log.total === 0) return "";
+  const pct = log.done / log.total;
+  if(pct <= 0) return "#EDE6D3";
+  if(pct < 0.34) return "#CFE0D5";
+  if(pct < 0.67) return "#9AC2A8";
+  if(pct < 1) return "#5E9974";
+  return "var(--sage)";
+}
+function renderCheckinHeatmap(){
+  const box = document.getElementById("checkinHeatmap");
+  if(!box) return;
+  const weeks = 10;
+  const totalDays = weeks * 7;
+  const todayD = parseDate(todayStr());
+  // 补齐到本周日，让热力图对齐整周
+  const endOffset = 6 - ((todayD.getDay()+6)%7);
+  const cells = [];
+  for(let i = totalDays - 1 - endOffset; i >= -endOffset; i--){
+    const d = new Date(todayD); d.setDate(d.getDate() - i);
+    const key = localDateStr(d);
+    const log = (data.checkinLog || {})[key];
+    cells.push({ key, log, future: d > todayD });
+  }
+  box.innerHTML = cells.map(c=>{
+    if(c.future) return '<div class="heat-cell" style="background:transparent;"></div>';
+    const color = heatColor(c.log);
+    const title = c.log
+      ? c.key + "：完成 " + c.log.done + " / " + c.log.total
+      : c.key + "：无记录";
+    return '<div class="heat-cell" style="background:' + (color || "var(--card-line)") + ';" title="' + title + '"></div>';
+  }).join("");
+
+  // 当前连续打卡天数（从今天往前，done>0 视为打卡成功，中断或无记录即停止）
+  let streak = 0;
+  for(let i = 0; i < 90; i++){
+    const key = addDaysStr(todayStr(), -i);
+    const log = (data.checkinLog || {})[key];
+    if(log && log.done > 0) streak++;
+    else break;
+  }
+  const label = document.getElementById("checkinStreakLabel");
+  if(label) label.textContent = streak > 0 ? ("连续打卡 " + streak + " 天") : "今天开始打卡吧";
+}
+function renderFocusTrend(){
+  const box = document.getElementById("focusTrendChart");
+  if(!box) return;
+  const n = 14;
+  const todayD = parseDate(todayStr());
+  const arr = [];
+  for(let i = n - 1; i >= 0; i--){
+    const d = new Date(todayD); d.setDate(d.getDate() - i);
+    const key = localDateStr(d);
+    const s = data.focus[key] || { count:0, minutes:0 };
+    arr.push({ key, minutes: s.minutes, isToday: key === todayStr() });
+  }
+  const max = Math.max(1, ...arr.map(a=>a.minutes));
+  const totalMinutes = arr.reduce((sum,a)=>sum+a.minutes, 0);
+  box.innerHTML = arr.map(a=>{
+    const h = Math.max(2, Math.round((a.minutes / max) * 100));
+    const label = a.key.slice(8); // 日
+    return '<div class="bar-col ' + (a.isToday?"today":"") + '" title="' + a.key + '：' + a.minutes + ' 分钟">'
+      + '<div class="bar-fill" style="height:' + h + '%;"></div>'
+      + '<div class="bar-label">' + label + '</div>'
+    + '</div>';
+  }).join("");
+  const totalEl = document.getElementById("focusTrendTotal");
+  if(totalEl) totalEl.textContent = "共 " + totalMinutes + " 分钟";
+}
+function renderStats(){
+  updateCheckinLog();
+  renderCheckinHeatmap();
+  renderFocusTrend();
+}
+
+// ================= 数据备份：导出 / 导入 =================
+function exportData(){
+  try{
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "工作台备份_" + todayStr() + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    toast("已导出备份文件");
+  }catch(e){
+    toast("导出失败，请重试");
+  }
+}
+function triggerImport(){
+  document.getElementById("importFileInput").click();
+}
+function handleImportFile(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    let obj;
+    try{ obj = JSON.parse(e.target.result); }
+    catch(err){ toast("文件格式不对，无法导入"); input.value = ""; return; }
+    if(!obj || typeof obj !== "object" || Array.isArray(obj)){
+      toast("文件内容不是有效的备份数据"); input.value = ""; return;
+    }
+    if(!confirm("导入将覆盖当前设备上的所有数据（任务、作业、课表、收支、打卡记录等），且无法撤销。确定要导入吗？")){
+      input.value = ""; return;
+    }
+    try{
+      const base = defaultData();
+      const merged = Object.assign(base, obj);
+      merged.habits = Object.assign(base.habits, obj.habits || {});
+      merged.scheduleMeta = Object.assign(base.scheduleMeta, obj.scheduleMeta || {});
+      merged.timer = Object.assign(base.timer, obj.timer || {});
+      normalizeSchedules(merged);
+      storage.set(STORE_KEY, JSON.stringify(merged));
+      toast("导入成功，正在刷新页面…");
+      setTimeout(()=>location.reload(), 700);
+    }catch(err){
+      toast("导入失败：" + (err && err.message ? err.message : "未知错误"));
+    }
+    input.value = "";
+  };
+  reader.onerror = function(){ toast("读取文件失败，请重试"); input.value = ""; };
+  reader.readAsText(file, "utf-8");
+}
+
+// ================= 首页：今日总览 =================
+function greetingText(){
+  const h = new Date().getHours();
+  if(h < 6) return "夜深了，早点休息";
+  if(h < 11) return "早上好";
+  if(h < 14) return "中午好";
+  if(h < 18) return "下午好";
+  return "晚上好";
+}
+function currentCheckinStreak(){
+  let streak = 0;
+  for(let i = 0; i < 90; i++){
+    const key = addDaysStr(todayStr(), -i);
+    const log = (data.checkinLog || {})[key];
+    if(log && log.done > 0) streak++;
+    else break;
+  }
+  return streak;
+}
+function renderDashboard(){
+  updateCheckinLog();
+  document.getElementById("dashGreeting").textContent = greetingText();
+  document.getElementById("dashDate").textContent =
+    new Date().toLocaleDateString('zh-CN', {year:'numeric', month:'long', day:'numeric', weekday:'long'});
+
+  // 考试倒计时 + 连续打卡
+  const cdEl = document.getElementById("dashCountdown");
+  if(data.examDate){
+    const diff = daysBetween(todayStr(), data.examDate);
+    cdEl.textContent = diff >= 0 ? diff + " 天" : "已过";
+  } else { cdEl.textContent = "未设置"; }
+  const streak = currentCheckinStreak();
+  document.getElementById("dashStreak").textContent = streak > 0 ? ("🔥 连续打卡 " + streak + " 天") : "今天开始打卡吧";
+
+  // 今日任务
+  const dailies = data.tasks.filter(t=>t.type==="daily");
+  const doneCnt = dailies.filter(t=>t.lastDone===todayStr()).length;
+  document.getElementById("dashTaskNum").textContent = dailies.length ? (doneCnt + " / " + dailies.length) : "--";
+  document.getElementById("dashTaskSub").textContent = dailies.length ? "今日已完成" : "还没有每日任务";
+
+  // 作业待办
+  const undone = data.homework.filter(h=>!h.done);
+  document.getElementById("dashHwNum").textContent = undone.length;
+  if(undone.length){
+    const sorted = [...undone].sort((a,b)=>(a.due||"").localeCompare(b.due||""));
+    document.getElementById("dashHwSub").textContent = "最近截止：" + sorted[0].due;
+  } else {
+    document.getElementById("dashHwSub").textContent = "全部完成 ✅";
+  }
+
+  // 今日专注
+  const fs = focusStat();
+  document.getElementById("dashFocusNum").textContent = fs.minutes + " 分钟";
+  document.getElementById("dashFocusSub").textContent = fs.count + " 次专注";
+
+  // 考纲总览
+  let totalAll = 0, doneAll = 0;
+  (data.examSyllabus || []).forEach(s=>{ totalAll += s.modules.length; doneAll += s.modules.filter(m=>m.done).length; });
+  const sylPct = totalAll ? Math.round(doneAll/totalAll*100) : 0;
+  document.getElementById("dashSylNum").textContent = sylPct + "%";
+  document.getElementById("dashSylSub").textContent = doneAll + " / " + totalAll + " 模块";
+
+  // 今日课程
+  const courseNumEl = document.getElementById("dashCourseNum");
+  const courseSubEl = document.getElementById("dashCourseSub");
+  const nc = nextClassToday();
+  if(nc.noWeek){
+    courseNumEl.textContent = "--";
+    courseSubEl.textContent = "未设置学期起始";
+  } else if(nc.noMatch){
+    courseNumEl.textContent = "--";
+    courseSubEl.textContent = "本周无匹配课表";
+  } else if(nc.entry){
+    courseNumEl.textContent = nc.entry.name;
+    courseSubEl.textContent = PERIODS[nc.p] + " · 还有 " + fmtRemain(nc.start - new Date());
+  } else if(nc.hasClass){
+    courseNumEl.textContent = "已结束";
+    courseSubEl.textContent = "今日课程已上完 🎉";
+  } else {
+    courseNumEl.textContent = "今日无课";
+    courseSubEl.textContent = "可以自由安排时间";
+  }
+
+  // 生活习惯
+  const rule = SEASON_RULES[data.habits.season];
+  const dueList = [];
+  KINDS.forEach(k=>{
+    const last = lastRecordOf(k.key);
+    if(!last){ dueList.push(k.label); return; }
+    const nextStr = addDaysStr(last.date, rule[k.key]);
+    if(daysBetween(todayStr(), nextStr) <= 0) dueList.push(k.label);
+  });
+  document.getElementById("dashHabitNum").textContent = dueList.length ? (dueList.length + " 项待安排") : "状态良好";
+  document.getElementById("dashHabitSub").textContent = dueList.length ? dueList.join("、") + "该安排啦" : "洗澡/洗头/洗衣都在周期内";
+
+  // 本月结余
+  const thisMonth = todayStr().slice(0,7);
+  let income = 0, expense = 0;
+  data.finance.forEach(f=>{
+    if(f.date && f.date.slice(0,7) === thisMonth){
+      if(f.type === "income") income += f.amount; else expense += f.amount;
+    }
+  });
+  document.getElementById("dashFinNum").textContent = "¥" + (income - expense).toFixed(0);
+  document.getElementById("dashFinSub").textContent = "本月支出 ¥" + expense.toFixed(0);
+}
+// 刷新页面后恢复计时状态；若倒计时在页面关闭期间已到点，静默记录
+function restoreTimer(){
+  const t = data.timer;
+  if(t.mode === "cd" && t.running){
+    if(Date.now() >= t.endTs){
+      addFocus(t.preset || 0);
+      t.running = false; t.remainMs = 0; t.endTs = 0;
+      saveData();
+      toast("上次倒计时已到点，已计入今日专注");
+    }
+  }
+  document.getElementById("segFocus").classList.toggle("active", t.mode==="focus");
+  document.getElementById("segCd").classList.toggle("active", t.mode==="cd");
+  document.getElementById("cdSetup").classList.toggle("hidden", t.mode!=="cd");
+  renderTimer(); renderTimerStats();
+}
+setInterval(()=>{
+  const t = data.timer;
+  if(t.running){
+    if(t.mode === "cd" && Date.now() >= t.endTs){ finishCd(); }
+    else { renderTimer(); }
+  }
+}, 1000);
+
+// ================= 定时任务：顶条刷新 + 提醒检查 =================
+setInterval(()=>{
+  renderTopbar();
+  checkClassAlerts();
+}, 30000);
+
+// ================= 初始化（逐项隔离，任何一项出错不影响其他） =================
+function safeInit(name, fn){ try{ fn(); }catch(e){ try{ console.error("init " + name + " failed:", e); }catch(e2){} } }
+safeInit("存储提示", function(){
+  if(!storage.usable){
+    document.getElementById("storageHint").textContent = "⚠ 当前环境无法保存数据，请下载后用浏览器打开";
+  }
+});
+safeInit("日期", function(){
+  document.getElementById("todayLabel").textContent =
+    new Date().toLocaleDateString('zh-CN', {year:'numeric', month:'long', day:'numeric', weekday:'long'});
+});
+safeInit("顶条", renderTopbar);
+safeInit("首页", renderDashboard);
+safeInit("考公", renderExam);
+safeInit("考纲总览", renderSyllabus);
+safeInit("习惯", renderHabit);
+safeInit("收支", renderFinance);
+safeInit("课表", renderSchedulePage);
+safeInit("作业", renderHomework);
+safeInit("计时", restoreTimer);
+safeInit("统计", renderStats);
+safeInit("作业每日提醒", hwDailyNotify);
+</script>
+</body>
+</html>
